@@ -1,11 +1,11 @@
 ## Purpose
 
-为 deploy-platform 提供可视操作面：一个 Flutter 工程产出 Web 控制台（浏览器使用）与移动 APP（Android），与后端同仓（monorepo），覆盖项目/发布单/制品/目标环境/部署/回滚/扩容全流程的查询与操作。
+为 deploy-platform 提供可视操作面：两个前端工程与后端同仓（monorepo）——`frontend-web/`（React）产出 Web 控制台（随单体 jar 同源部署），`frontend/`（Flutter）产出移动 APP（Android）。两端共享同一 API 契约与页面域划分，覆盖项目/发布单/制品/目标环境/部署/回滚/扩容全流程的查询与操作。
 
 ## ADDED Requirements
 
-### Requirement: 单工程多产物
-控制台 SHALL 由一个 Flutter 工程构建出两类产物：Web（浏览器访问，随单体 jar 同源部署）与 Android APK（独立安装的移动运维端）。两端 SHALL 共享同一套域模型、API 客户端与状态管理。
+### Requirement: 双端工程
+控制台 SHALL 由两个工程分别产出 Web 与移动端：Web 控制台（React）随单体 jar 同源部署（浏览器访问服务根路径即得），Android APK（Flutter）为独立安装的移动运维端。两端 SHALL 共享同一套 API 契约与页面域划分。
 
 #### Scenario: Web 产物随服务发布
 - **WHEN** 后端服务启动且嵌入了控制台 Web 产物
@@ -31,7 +31,7 @@
 - **THEN** 发起回滚请求并展示进度直至回滚完成或失败
 
 ### Requirement: API 客户端与登录态
-控制台 SHALL 通过统一 HTTP 客户端访问平台 API：附加认证令牌头、统一错误码呈现（业务拒绝与服务器错误可区分）、平台地址可配置（APP 端在设置页修改，Web 端固定同源相对路径）。
+两端 SHALL 各自通过统一 HTTP 客户端访问平台 API：附加认证令牌头、统一错误码呈现（业务拒绝与服务器错误可区分）、平台地址可配置（APP 端经 AppConfig 修改，Web 端开发期走 vite proxy、生产固定同源）。
 
 #### Scenario: 业务错误呈现
 - **WHEN** API 返回业务拒绝响应

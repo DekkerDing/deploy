@@ -1,6 +1,6 @@
 ## Purpose
 
-让平台把 Flutter 工程当作一等构建对象：新增 FLUTTER 构建类型（flutter build web / apk 子进程），Web 产物嵌入后端 jar 形成"前后端一体"的全栈单体交付物，APK 作为平台绑定制品入库——平台由此可以用自己发布自己（自举）。
+让平台把 Flutter 工程当作一等构建对象：新增 FLUTTER 构建类型（flutter build apk 子进程），APK 作为平台绑定制品入库。前端页面嵌入单体 jar 的职责已由 React 产物经 Gradle 任务链实现（见下），"前后端一体"的全栈单体交付物由此成立——平台可以用自己发布自己（自举）。
 
 ## ADDED Requirements
 
@@ -16,7 +16,7 @@
 - **THEN** 发布单转 FAILED，错误消息指明 flutter 未安装
 
 ### Requirement: Web 产物嵌入单体 jar
-FLUTTER 项目（或配置了前端嵌入的项目）构建时，Web 产物 SHALL 被嵌入后端 jar 的静态资源目录，产出单一全栈制品（页面 + API 同进程同源）；该制品沿用现有 JVM 可移植制品的入库与交付链路。
+配置了前端嵌入的项目（本变更中为 React 产物，经 Gradle 任务链）构建时，Web 产物 SHALL 被嵌入后端 jar 的静态资源目录，产出单一全栈制品（页面 + API 同进程同源）；该制品沿用现有 JVM 可移植制品的入库与交付链路。
 
 #### Scenario: 单体制品可交付
 - **WHEN** 全栈单体 jar 构建完成并交付到目标环境
