@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../core/config/app_config.dart';
+import 'auth_session.dart';
 
 class ApiException implements Exception {
   final int code;
@@ -29,10 +30,16 @@ class HttpClient {
   }
 
   static Future<Map<String, String>> _buildHeaders() async {
-    return {
+    final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+    // 启用认证时携带会话标记；兼容模式（无会话）不受影响
+    final session = AuthSession.instance.sessionId;
+    if (session != null) {
+      headers['X-Auth-Session'] = session;
+    }
+    return headers;
   }
 
   static Future<dynamic> get(
@@ -97,6 +104,10 @@ class HttpClient {
       }
     }
 
+    // 会话缺失/失效：通知路由跳登录页（登录请求自身的 401 由登录页呈现错误）
+    if (statusCode == 401) {
+      AuthSession.instance.onUnauthorized();
+    }
     String message;
     try {
       final decoded = jsonDecode(body);

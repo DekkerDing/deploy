@@ -28,6 +28,9 @@ mybatis-plus:
 deploy:
     storage-dir: ./storage      # 制品库根目录: storage/{project}/{version}/
     log-dir: ./logs             # 构建日志: logs/{releaseId}/build.log
+    auth:
+        token: ''              # 平台令牌：空 = 认证关闭（零鉴权兼容模式，保持既有 curl 用法）；配置后 /api/** 需会话
+        session-ttl: 12h       # 登录会话有效期
     winsw:
         exe-path: F:/workspace/deploy/vendor/winsw/WinSW-x64.exe  # 平台侧 WinSW（仓库根 vendor/，绝对路径避免 cwd 歧义）
     build:

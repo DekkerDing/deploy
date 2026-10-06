@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../app.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../services/auth_session.dart';
 import '../../release/viewmodels/release_viewmodel.dart';
 import '../../target_env/viewmodels/target_env_viewmodel.dart';
 
@@ -464,7 +465,11 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
       );
       return;
     }
-    final url = Uri.parse('$base/api/artifacts/$artifactId/download');
+    // 外部浏览器无法自定义请求头，会话经 ?session= 传递（后端 AuthInterceptor 支持）
+    final session = AuthSession.instance.sessionId;
+    final url = Uri.parse('$base/api/artifacts/$artifactId/download').replace(
+      queryParameters: session == null ? null : {'session': session},
+    );
     final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('无法打开下载: $url')));

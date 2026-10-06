@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { config } from './config';
+import { clearSession, getSession } from './auth';
 
 export class ApiException extends Error {
   constructor(
@@ -20,10 +21,25 @@ const client = axios.create({
   },
 });
 
+// 会话标记注入：启用认证时后端校验；兼容模式（无会话）不受影响
+client.interceptors.request.use((req) => {
+  const session = getSession();
+  if (session) {
+    req.headers = req.headers ?? {};
+    req.headers['X-Auth-Session'] = session;
+  }
+  return req;
+});
+
 client.interceptors.response.use(
   (res) => res,
   (err: AxiosError<{ message?: string; msg?: string }>) => {
     const status = err.response?.status ?? 0;
+    // 会话缺失/失效：清除本地会话并跳登录页（登录请求自身的 401 除外，由登录页呈现错误）
+    if (status === 401 && !err.config?.url?.includes('/api/auth/login')) {
+      clearSession();
+      window.location.href = '/login';
+    }
     const data = err.response?.data;
     const message = data?.message ?? data?.msg ?? err.message;
     throw new ApiException(status, message);

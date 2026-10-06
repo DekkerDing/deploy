@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { Package, Hammer, Rocket, RotateCcw, Download, Server } from "lucide-react";
 import { useReleaseStore } from "../stores/releaseStore";
 import { useTargetEnvStore } from "../stores/targetEnvStore";
+import { getSession } from "../core/auth";
 import { LoadingSpinner, ErrorMessage, Badge, formatSize, formatDate, STATE_MAP } from "../components/common";
 import BuildLogPanel from "../components/BuildLogPanel";
 
@@ -102,7 +103,12 @@ export default function ReleaseDetailPage() {
                     {" | sha256: "}<span className="font-mono" title={a.sha256}>{a.sha256.slice(0, 12)}…</span>
                   </div>
                 </div>
-                <a href={`/api/artifacts/${a.id}/download`} className="btn-secondary !py-1.5 !px-3 text-xs">下载</a>
+                <a
+                  href={`/api/artifacts/${a.id}/download${getSession() ? `?session=${encodeURIComponent(getSession()!)}` : ''}`}
+                  className="btn-secondary !py-1.5 !px-3 text-xs"
+                >
+                  下载
+                </a>
               </div>
             ))}
           </div>

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'core/routes/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'services/auth_session.dart';
 import 'features/project/viewmodels/project_viewmodel.dart';
 import 'features/release/viewmodels/release_viewmodel.dart';
 import 'features/target_env/viewmodels/target_env_viewmodel.dart';
@@ -109,6 +110,23 @@ class AppScaffold extends StatelessWidget {
             onTap: () {
               context.go(AppRoutes.targetEnvs);
               Navigator.pop(context);
+            },
+          ),
+          // 已登录（启用认证）时显示退出；兼容模式无会话不显示
+          ListenableBuilder(
+            listenable: AuthSession.instance,
+            builder: (context, _) {
+              if (AuthSession.instance.sessionId == null) {
+                return const SizedBox.shrink();
+              }
+              return ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('退出登录'),
+                onTap: () {
+                  AuthSession.instance.logout();
+                  Navigator.pop(context);
+                },
+              );
             },
           ),
         ],

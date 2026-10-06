@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderOpen,
@@ -7,9 +7,12 @@ import {
   Menu,
   Moon,
   Sun,
+  LogOut,
 } from 'lucide-react';
+import { clearSession, getSession } from '../core/auth';
 
 export default function Layout() {
+  const navigate = useNavigate();
   const [dark, setDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -66,7 +69,7 @@ export default function Layout() {
             <Monitor size={18} /> 目标环境
           </NavLink>
         </nav>
-        <div className="border-t border-gray-200 p-3 dark:border-gray-700">
+        <div className="space-y-1 border-t border-gray-200 p-3 dark:border-gray-700">
           <button
             onClick={toggleDark}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
@@ -74,6 +77,17 @@ export default function Layout() {
             {dark ? <Sun size={16} /> : <Moon size={16} />}
             {dark ? '浅色模式' : '深色模式'}
           </button>
+          {getSession() && (
+            <button
+              onClick={() => {
+                clearSession();
+                navigate('/login');
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+            >
+              <LogOut size={16} /> 退出登录
+            </button>
+          )}
         </div>
       </aside>
       <main className="flex flex-1 flex-col overflow-hidden">
