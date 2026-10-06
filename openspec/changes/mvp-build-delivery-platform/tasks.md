@@ -3,7 +3,7 @@
 - [x] 1.1 删除 `serverless/.git` 嵌套仓库并将代码并入外层仓库提交；验证 `git status` 不再出现嵌套库、历史可追溯
 - [x] 1.2 恢复根 `.gitignore` 并补充 `build/ target/ .idea/ logs/ storage/ *.h2.db` 等条目；验证 `git status` 不显示构建产物与 IDE 文件
 - [x] 1.3 删除 `demos/web` 演示代码，包重命名为 `io.github.dekkerding.deploy`，`settings.gradle` 的 `rootProject.name` 改为 `deploy-platform`；验证 `gradlew build` 编译通过
-- [ ] 1.4 `bootstrap.yaml` 重命名为 `application.yaml`，清理死注释并建立基础配置段（端口、存储目录、H2）；验证应用启动无报错
+- [x] 1.4 `bootstrap.yaml` 重命名为 `application.yaml`，清理死注释并建立基础配置段（端口、存储目录、H2）；验证应用启动无报错
 
 ## 2. 领域模型与存储
 

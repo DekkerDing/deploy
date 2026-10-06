@@ -59,10 +59,14 @@ javadoc {
 //}
 
 dependencies {
-    //implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    //implementation 'org.springframework.boot:spring-boot-starter-batch'
-    // implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // 持久化: H2(file, 零安装) + MyBatis-Plus（迁 MySQL 仅换连接配置）
+    runtimeOnly 'com.h2database:h2'
+    implementation 'com.baomidou:mybatis-plus-boot-starter:3.5.3.1'
+
+    // SSH 通道: SFTP 上传 / 远程命令执行
+    implementation 'com.hierynomus:sshj:0.38.0'
 
     // https://mvnrepository.com/artifact/io.fabric8/kubernetes-client
     implementation 'io.fabric8:kubernetes-client:6.13.3'
