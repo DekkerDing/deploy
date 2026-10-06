@@ -44,6 +44,11 @@ public final class ArtifactPlatformDetector {
         if (isJvmArtifact(fileName)) {
             return Descriptor.portable();
         }
+        // Android APK（design D5）：绑定 android/arm64；libc 留空通配
+        //（android 无 libc 注册负担，exactMatch 中制品 libc=null 视为通配）
+        if (fileName.toLowerCase(Locale.ROOT).endsWith(".apk")) {
+            return new Descriptor(false, "android", "arm64", null);
+        }
         // 原生/未知制品：绑定构建宿主平台（保守策略，防止误路由）
         return new Descriptor(false, hostOs(), hostArch(), hostLibc());
     }

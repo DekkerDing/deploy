@@ -49,6 +49,13 @@ class BuildExecutorRegistryTest {
     }
 
     @Test
+    void 进程执行器声明支持FLUTTER类型() {
+        // 任务 4.1：FLUTTER 由 ProcessBuildExecutor 承接（design D5）
+        ProcessBuildExecutor executor = new ProcessBuildExecutor();
+        assertThat(executor.supports(BuildType.FLUTTER)).isTrue();
+    }
+
+    @Test
     void 无执行器支持时抛出明确异常() {
         BuildExecutorRegistry registry = new BuildExecutorRegistry(
                 Collections.singletonList(new MavenStubExecutor()));

@@ -116,6 +116,7 @@ class _ProjectListPageState extends State<ProjectListPage> {
                     DropdownMenuItem(value: 'MAVEN', child: Text('Maven')),
                     DropdownMenuItem(value: 'GRADLE', child: Text('Gradle')),
                     DropdownMenuItem(value: 'NPM', child: Text('NPM')),
+                    DropdownMenuItem(value: 'FLUTTER', child: Text('Flutter (APK)')),
                   ],
                   onChanged: (v) => setState(() => selectedType = v!),
                 ),

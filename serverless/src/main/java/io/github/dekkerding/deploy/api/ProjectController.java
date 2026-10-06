@@ -29,7 +29,7 @@ public class ProjectController {
 
     /** 支持的构建类型（与 specs/build-execution 的进程式构建对应） */
     public static final Set<String> SUPPORTED_BUILD_TYPES = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList("MAVEN", "GRADLE", "NPM")));
+            new HashSet<>(Arrays.asList("MAVEN", "GRADLE", "NPM", "FLUTTER")));
 
     private final ProjectService projectService;
 
@@ -37,7 +37,7 @@ public class ProjectController {
     public static class CreateProjectRequest {
         @NotBlank(message = "项目名称不能为空")
         private String name;
-        @NotBlank(message = "构建类型不能为空（MAVEN/GRADLE/NPM）")
+        @NotBlank(message = "构建类型不能为空（MAVEN/GRADLE/NPM/FLUTTER）")
         private String buildType;
         @NotBlank(message = "源码路径不能为空")
         private String sourcePath;

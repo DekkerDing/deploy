@@ -4,5 +4,6 @@ package io.github.dekkerding.deploy.build;
 public enum BuildType {
     MAVEN,
     GRADLE,
-    NPM
+    NPM,
+    FLUTTER
 }

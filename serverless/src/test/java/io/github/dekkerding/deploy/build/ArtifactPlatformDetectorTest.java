@@ -28,6 +28,16 @@ class ArtifactPlatformDetectorTest {
     }
 
     @Test
+    void APK绑定android_arm64且libc留空通配() {
+        // design D5：FLUTTER 构建产物按 android/arm64 入库；libc=null 在路由 exactMatch 中视为通配
+        ArtifactPlatformDetector.Descriptor d = ArtifactPlatformDetector.detect("app-release.apk");
+        assertThat(d.portable).isFalse();
+        assertThat(d.os).isEqualTo("android");
+        assertThat(d.arch).isEqualTo("arm64");
+        assertThat(d.libc).isNull();
+    }
+
+    @Test
     void 未知扩展名保守按平台绑定处理() {
         ArtifactPlatformDetector.Descriptor d = ArtifactPlatformDetector.detect("bundle.bin");
         assertThat(d.portable).isFalse();

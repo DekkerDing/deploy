@@ -47,6 +47,31 @@ class RoutingResolverTest {
     }
 
     @Test
+    void APK制品对android目标精确匹配且libc通配() {
+        // 任务 4.3：APK 绑定 android/arm64/libc=null；目标 libc 空（未填）或显式 bionic 均命中
+        Decision d1 = resolver.resolve(
+                Collections.singletonList(artifact("app-release.apk", "android", "arm64", null, false)),
+                env("android", "arm64", null, "KNOWN"));
+        assertThat(d1.matched).isTrue();
+        assertThat(d1.artifact.getFileName()).isEqualTo("app-release.apk");
+        assertThat(d1.reason).contains("精确匹配");
+
+        Decision d2 = resolver.resolve(
+                Collections.singletonList(artifact("app-release.apk", "android", "arm64", null, false)),
+                env("android", "arm64", "bionic", "KNOWN"));
+        assertThat(d2.matched).isTrue();
+    }
+
+    @Test
+    void APK制品不匹配非android目标() {
+        Decision d = resolver.resolve(
+                Collections.singletonList(artifact("app-release.apk", "android", "arm64", null, false)),
+                env("windows", "amd64", "msvc", "KNOWN"));
+        assertThat(d.matched).isFalse();
+        assertThat(d.reason).contains("无匹配制品");
+    }
+
+    @Test
     void PORTABLE制品回退路由到任意平台() {
         Decision d = resolver.resolve(
                 Collections.singletonList(artifact("app.jar", null, null, null, true)),

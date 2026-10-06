@@ -27,14 +27,14 @@ import java.util.concurrent.TimeUnit;
 public class ProcessBuildExecutor implements BuildExecutor {
 
     private static final Set<BuildType> SUPPORTED = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(BuildType.MAVEN, BuildType.GRADLE, BuildType.NPM)));
+            new HashSet<>(Arrays.asList(BuildType.MAVEN, BuildType.GRADLE, BuildType.NPM, BuildType.FLUTTER)));
 
     private static final boolean WINDOWS =
             System.getProperty("os.name", "").toLowerCase().contains("win");
 
     /** 需要安装在全局 PATH 的工具名（wrapper 脚本不算）。 */
     private static final Set<String> GLOBAL_TOOLS = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList("mvn", "gradle", "npm")));
+            new HashSet<>(Arrays.asList("mvn", "gradle", "npm", "flutter")));
 
     /** 探测全局命令是否可用（where / command -v），5 秒超时视为不可用。 */
     boolean toolAvailable(String tool) {
@@ -119,7 +119,7 @@ public class ProcessBuildExecutor implements BuildExecutor {
             return BuildResult.fail(-1, "构建被中断");
         } catch (IOException e) {
             return BuildResult.fail(-1, "构建进程启动失败: " + e.getMessage()
-                    + "（请确认 mvn/gradle/npm 已安装并在 PATH 中）");
+                    + "（请确认 mvn/gradle/npm/flutter 已安装并在 PATH 中）");
         }
     }
 
@@ -138,6 +138,11 @@ public class ProcessBuildExecutor implements BuildExecutor {
                 return Arrays.asList(
                         Arrays.asList("npm", "install"),
                         Arrays.asList("npm", "run", "build"));
+            case FLUTTER:
+                // design D5：pub get → build apk（--release 默认 fat-apk，arch 绑定在制品入库阶段打标）
+                return Arrays.asList(
+                        Arrays.asList("flutter", "pub", "get"),
+                        Arrays.asList("flutter", "build", "apk", "--release"));
             default:
                 throw new IllegalArgumentException("不支持的构建类型: " + type);
         }
@@ -163,7 +168,7 @@ public class ProcessBuildExecutor implements BuildExecutor {
         return wrapped;
     }
 
-    /** 构建产物发现：maven → target/*.jar；gradle → build/libs/*.jar；npm → dist 目录。 */
+    /** 构建产物发现：maven → target/*.jar；gradle → build/libs/*.jar；npm → dist 目录；flutter → flutter-apk/*.apk。 */
     private List<Path> discoverProduced(BuildType type, Path source) {
         Path dir;
         String glob;
@@ -173,6 +178,9 @@ public class ProcessBuildExecutor implements BuildExecutor {
         } else if (type == BuildType.GRADLE) {
             dir = source.resolve(Paths.get("build", "libs"));
             glob = "*.jar";
+        } else if (type == BuildType.FLUTTER) {
+            dir = source.resolve(Paths.get("build", "app", "outputs", "flutter-apk"));
+            glob = "*.apk";
         } else {
             Path dist = source.resolve("dist");
             return Files.isDirectory(dist) ? Collections.singletonList(dist) : Collections.<Path>emptyList();
