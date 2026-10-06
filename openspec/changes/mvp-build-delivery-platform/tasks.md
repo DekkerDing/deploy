@@ -16,7 +16,7 @@
 
 - [x] 3.1 定义 `BuildExecutor` SPI 与 `BuildContext`/`BuildResult` 模型；验证编译通过、接口可被多实现注册
 - [x] 3.2 实现 `ProcessBuildExecutor`（按构建类型组装 mvn/gradle/npm 命令，命令缺失时立即失败并指明缺失命令）；验证对一个样例 Java 项目真实构建出 jar
-- [ ] 3.3 构建日志流式落盘 `logs/{releaseId}/build.log` 并提供偏移量增量读取 API；验证构建中轮询能看到日志增长、平台重启后仍可读历史
+- [x] 3.3 构建日志流式落盘 `logs/{releaseId}/build.log` 并提供偏移量增量读取 API；验证构建中轮询能看到日志增长、平台重启后仍可读历史
 - [ ] 3.4 固定线程池+有界队列的并发控制；验证两个构建并发互不串扰、超上限任务排队不失败
 - [ ] 3.5 构建超时与失败处理（destroyForcibly、FAILED 状态+退出码与日志尾摘要）；验证人为制造编译错误时发布单正确转 FAILED
 

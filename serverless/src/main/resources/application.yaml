@@ -30,3 +30,5 @@ deploy:
     log-dir: ./logs             # 构建日志: logs/{releaseId}/build.log
     build:
         timeout-millis: 600000    # 单次构建超时（10 分钟），超时强杀子进程并落 FAILED
+        concurrency: 2            # 构建并发线程数（任务 3.4）
+        queue-capacity: 50        # 等待队列容量：超并发任务排队不失败

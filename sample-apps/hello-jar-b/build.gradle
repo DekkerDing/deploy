@@ -1,0 +1,8 @@
+// 第二个 E2E 夹具：验证并发构建互不串扰（独立产物目录）
+apply plugin: 'java'
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.example.HelloB'
+    }
+}

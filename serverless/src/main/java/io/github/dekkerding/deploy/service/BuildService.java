@@ -14,11 +14,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * 构建编排：触发（CREATED→BUILDING）后异步执行，落终态 BUILT / FAILED。
@@ -40,16 +44,50 @@ public class BuildService {
     @Value("${deploy.build.timeout-millis:600000}")
     private long timeoutMillis;
 
-    private final ExecutorService buildWorker = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "build-worker");
-        t.setDaemon(true);
-        return t;
-    });
+    @Value("${deploy.build.concurrency:2}")
+    private int concurrency;
 
-    /** 触发构建：状态先同步流转到 BUILDING 并返回，真实构建在后台线程执行。 */
+    @Value("${deploy.build.queue-capacity:50}")
+    private int queueCapacity;
+
+    /**
+     * 固定线程池 + 有界队列（任务 3.4）：
+     * 并发上限内立即执行，超上限进队列等待（不失败）；队列满时触发线程阻塞等待空位
+     * （caller-blocks 语义），保证任务不会被拒绝丢弃。
+     * 池参数来自配置，故在 @PostConstruct 中构造（@Value 晚于字段初始化注入）。
+     */
+    private ThreadPoolExecutor buildWorker;
+
+    @PostConstruct
+    void initPool() {
+        int size = Math.max(1, concurrency);
+        buildWorker = new ThreadPoolExecutor(size, size, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(Math.max(1, queueCapacity)),
+                r -> {
+                    Thread t = new Thread(r, "build-worker");
+                    t.setDaemon(true);
+                    return t;
+                }) {
+
+            @Override
+            public void execute(Runnable command) {
+                // 队列满时在触发线程上阻塞重试，而非抛 RejectedExecutionException（排队不失败）
+                while (true) {
+                    try {
+                        super.execute(command);
+                        return;
+                    } catch (RejectedExecutionException e) {
+                        LockSupport.parkNanos(100_000_000L); // 100ms 后重试
+                    }
+                }
+            }
+        };
+    }
+
+    /** 触发构建：状态先同步流转到 BUILDING 并返回，真实构建在线程池排队/执行。 */
     public ReleaseEntity trigger(Long releaseId) {
         ReleaseEntity release = releaseStateService.transition(releaseId, ReleaseState.BUILDING, "触发构建");
-        buildWorker.submit(() -> runSafely(releaseId));
+        buildWorker.execute(() -> runSafely(releaseId));
         return release;
     }
 
@@ -98,6 +136,8 @@ public class BuildService {
 
     @PreDestroy
     public void shutdown() {
-        buildWorker.shutdownNow();
+        if (buildWorker != null) {
+            buildWorker.shutdownNow();
+        }
     }
 }
