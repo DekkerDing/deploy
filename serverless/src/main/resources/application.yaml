@@ -1,0 +1,13 @@
+server:
+    port: 8080
+
+spring:
+    application:
+        name: deploy-platform
+    main:
+        allow-bean-definition-overriding: true
+
+# 平台运行期目录（制品/日志等，运行时自动创建，均已 gitignore）
+deploy:
+    storage-dir: ./storage      # 制品库根目录: storage/{project}/{version}/
+    log-dir: ./logs             # 构建日志: logs/{releaseId}/build.log
