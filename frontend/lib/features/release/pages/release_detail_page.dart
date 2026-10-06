@@ -15,14 +15,38 @@ class ReleaseDetailPage extends StatefulWidget {
 }
 
 class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
+  final ScrollController _logScroll = ScrollController();
+  bool _logFollow = true; // 自动贴底；用户上滚后暂停，滚回底部恢复
+  ReleaseViewModel? _releaseVM; // dispose 时停日志轮询用（避免 dispose 中取 context）
+
   @override
   void initState() {
     super.initState();
+    _logScroll.addListener(_onLogScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReleaseViewModel>().loadDetail(widget.releaseId);
-      context.read<ReleaseViewModel>().loadDeployments(widget.releaseId);
+      final vm = context.read<ReleaseViewModel>();
+      _releaseVM = vm;
+      vm.loadDetail(widget.releaseId);
+      vm.loadDeployments(widget.releaseId);
+      vm.startLogPolling(widget.releaseId);
       context.read<TargetEnvViewModel>().loadEnvs();
     });
+  }
+
+  @override
+  void dispose() {
+    _logScroll.removeListener(_onLogScroll);
+    _logScroll.dispose();
+    _releaseVM?.stopLogPolling(); // ViewModel 生命周期长于页面，离开页面必须停轮询
+    super.dispose();
+  }
+
+  /// 距底部 40px 内视为"跟随态"，离开则暂停自动滚动
+  void _onLogScroll() {
+    if (!_logScroll.hasClients) return;
+    final pos = _logScroll.position;
+    final atBottom = pos.pixels >= pos.maxScrollExtent - 40;
+    if (atBottom != _logFollow) setState(() => _logFollow = atBottom);
   }
 
   @override
@@ -52,6 +76,8 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
                           _buildStatusCard(detail),
                           const SizedBox(height: 16),
                           _buildActionsSection(releaseVM, envVM),
+                          const SizedBox(height: 16),
+                          _buildLogSection(releaseVM),
                           const SizedBox(height: 16),
                           if (detail.artifacts.isNotEmpty) _buildArtifactsSection(detail),
                           const SizedBox(height: 16),
@@ -141,6 +167,99 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
                     onPressed: () => _showRollbackDialog(releaseVM, envVM),
                   ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogSection(ReleaseViewModel vm) {
+    // 日志追加触发的重建帧后贴底（仅跟随态；用户上滚时不动）
+    if (_logFollow && _logScroll.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_logFollow && _logScroll.hasClients) {
+          _logScroll.jumpTo(_logScroll.position.maxScrollExtent);
+        }
+      });
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('构建日志', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+                if (vm.logLive)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text('● 实时', style: TextStyle(fontSize: 11, color: Color(0xFFF59E0B))),
+                  )
+                else if (vm.logExists)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text('已完结', style: TextStyle(fontSize: 11, color: AppTheme.accent)),
+                  ),
+                const SizedBox(width: 8),
+                Text(_formatSize(vm.logSize), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                if (!_logFollow) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () {
+                      if (_logScroll.hasClients) {
+                        _logScroll.jumpTo(_logScroll.position.maxScrollExtent);
+                      }
+                      setState(() => _logFollow = true);
+                    },
+                    child: const Text('↓ 最新', style: TextStyle(fontSize: 12, color: AppTheme.primary)),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              height: 280,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFF14171C),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: !vm.logExists
+                  ? const Center(
+                      child: Text('尚未构建——触发构建后此处实时输出日志',
+                          style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    )
+                  : Scrollbar(
+                      controller: _logScroll,
+                      thumbVisibility: true,
+                      child: SingleChildScrollView(
+                        controller: _logScroll,
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: SelectableText(
+                            vm.logText.isEmpty ? '（等待输出）' : vm.logText,
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                              height: 1.4,
+                              color: Color(0xFFD7DDE5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),

@@ -37,3 +37,15 @@ export interface ReleaseDetail {
   artifacts: Artifact[];
   events: ReleaseEvent[];
 }
+
+/** 构建日志增量块（GET /api/releases/{id}/build-log?offset=N）。 */
+export interface BuildLogChunk {
+  releaseId: number;
+  state: string;
+  exists: boolean;
+  offset: number;
+  nextOffset: number;
+  size: number;
+  truncated: boolean;
+  content: string;
+}

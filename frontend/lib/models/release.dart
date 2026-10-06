@@ -141,3 +141,39 @@ class ReleaseEvent {
     );
   }
 }
+
+/// 构建日志增量块（GET /api/releases/{id}/build-log?offset=N）。
+class BuildLogChunk {
+  final int releaseId;
+  final String state;
+  final bool exists;
+  final int offset;
+  final int nextOffset;
+  final int size;
+  final bool truncated;
+  final String content;
+
+  BuildLogChunk({
+    required this.releaseId,
+    required this.state,
+    required this.exists,
+    required this.offset,
+    required this.nextOffset,
+    required this.size,
+    required this.truncated,
+    required this.content,
+  });
+
+  factory BuildLogChunk.fromJson(Map<String, dynamic> json) {
+    return BuildLogChunk(
+      releaseId: json['releaseId'] as int,
+      state: json['state'] as String,
+      exists: json['exists'] as bool? ?? false,
+      offset: json['offset'] as int? ?? 0,
+      nextOffset: json['nextOffset'] as int? ?? 0,
+      size: json['size'] as int? ?? 0,
+      truncated: json['truncated'] as bool? ?? false,
+      content: json['content'] as String? ?? '',
+    );
+  }
+}

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../../../models/release.dart';
 import '../../../models/deployment.dart';
@@ -9,6 +11,23 @@ class ReleaseViewModel extends ChangeNotifier {
   List<Deployment> _deployments = [];
   bool _loading = false;
   String? _error;
+
+  // ---- 构建日志轮询 ----
+  static const Set<String> _logActiveStates = {'CREATED', 'BUILDING'};
+  static const int _logMaxChars = 512 * 1024; // 只保留尾部，防超长日志撑爆视图
+  static const Duration _logPollInterval = Duration(seconds: 1);
+
+  Timer? _logTimer;
+  String _logText = '';
+  int _logOffset = 0;
+  int _logSize = 0;
+  bool _logExists = false;
+  bool _logLive = true;
+
+  String get logText => _logText;
+  int get logSize => _logSize;
+  bool get logExists => _logExists;
+  bool get logLive => _logLive;
 
   List<Release> get releases => List.unmodifiable(_releases);
   ReleaseDetail? get detail => _detail;
@@ -160,5 +179,60 @@ class ReleaseViewModel extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+  }
+
+  // ---- 构建日志滚动窗（1s 轮询 offset 续读，终态停止） ----
+
+  /// 启动（或重启）日志轮询：重置累积文本，从 offset=0 全量拉起。
+  void startLogPolling(int releaseId) {
+    stopLogPolling();
+    _logText = '';
+    _logOffset = 0;
+    _logSize = 0;
+    _logExists = false;
+    _logLive = true;
+    _fetchLog(releaseId);
+    _logTimer = Timer.periodic(_logPollInterval, (_) => _fetchLog(releaseId));
+    notifyListeners();
+  }
+
+  void stopLogPolling() {
+    _logTimer?.cancel();
+    _logTimer = null;
+  }
+
+  Future<void> _fetchLog(int releaseId) async {
+    try {
+      final data = await HttpClient.get(
+        '/api/releases/$releaseId/build-log',
+        query: {'offset': '$_logOffset'},
+      );
+      final chunk = BuildLogChunk.fromJson(data as Map<String, dynamic>);
+      _logExists = chunk.exists;
+      _logSize = chunk.size;
+      if (!_logActiveStates.contains(chunk.state)) {
+        _logLive = false; // BUILT/FAILED 等后续状态：停止轮询
+        stopLogPolling();
+      }
+      if (chunk.exists && chunk.content.isNotEmpty) {
+        _logOffset = chunk.nextOffset;
+        _logText += chunk.content;
+        if (_logText.length > _logMaxChars) {
+          _logText = _logText.substring(_logText.length - _logMaxChars);
+        }
+      }
+      _error = null;
+    } on ApiException catch (e) {
+      _error = e.message;
+    } catch (_) {
+      // 单次轮询的瞬时失败不打断周期，下个 tick 重试
+    }
+    if (hasListeners) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _logTimer?.cancel();
+    super.dispose();
   }
 }

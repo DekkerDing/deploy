@@ -4,6 +4,7 @@ import { Package, Hammer, Rocket, RotateCcw, Download, Server } from "lucide-rea
 import { useReleaseStore } from "../stores/releaseStore";
 import { useTargetEnvStore } from "../stores/targetEnvStore";
 import { LoadingSpinner, ErrorMessage, Badge, formatSize, formatDate, STATE_MAP } from "../components/common";
+import BuildLogPanel from "../components/BuildLogPanel";
 
 export default function ReleaseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -68,6 +69,8 @@ export default function ReleaseDetailPage() {
           <div><span className="text-gray-500">更新时间</span> {formatDate(release.updatedAt)}</div>
         </div>
       </div>
+
+      <BuildLogPanel releaseId={releaseId} />
 
       <div className="card">
         <h2 className="mb-3 text-lg font-bold">制品 ({artifacts.length})</h2>
