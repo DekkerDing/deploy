@@ -1,0 +1,8 @@
+// 最小可构建示例项目（E2E 自测夹具）：零外部依赖，验证平台真实构建链路
+apply plugin: 'java'
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.example.Hello'
+    }
+}

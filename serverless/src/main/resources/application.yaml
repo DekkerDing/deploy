@@ -28,3 +28,5 @@ mybatis-plus:
 deploy:
     storage-dir: ./storage      # 制品库根目录: storage/{project}/{version}/
     log-dir: ./logs             # 构建日志: logs/{releaseId}/build.log
+    build:
+        timeout-millis: 600000    # 单次构建超时（10 分钟），超时强杀子进程并落 FAILED

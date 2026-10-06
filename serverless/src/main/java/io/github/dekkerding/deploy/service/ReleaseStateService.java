@@ -25,6 +25,12 @@ public class ReleaseStateService {
 
     @Transactional
     public ReleaseEntity transition(Long releaseId, ReleaseState target, String message) {
+        return transition(releaseId, target, message, null);
+    }
+
+    /** 失败转移时附带 fail_reason 落库（release.fail_reason 列）。 */
+    @Transactional
+    public ReleaseEntity transition(Long releaseId, ReleaseState target, String message, String failReason) {
         ReleaseEntity release = releaseMapper.selectById(releaseId);
         if (release == null) {
             throw new IllegalArgumentException("发布单不存在: id=" + releaseId);
@@ -33,6 +39,9 @@ public class ReleaseStateService {
         ReleaseState next = from.transitionTo(target); // 非法流转抛 IllegalStateTransitionException
 
         release.setState(next.name());
+        if (failReason != null) {
+            release.setFailReason(failReason);
+        }
         release.setUpdatedAt(LocalDateTime.now());
         releaseMapper.updateById(release);
 

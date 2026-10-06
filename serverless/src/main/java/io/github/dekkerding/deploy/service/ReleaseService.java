@@ -57,11 +57,6 @@ public class ReleaseService {
         return r;
     }
 
-    /** 触发构建：CREATED → BUILDING（真实构建执行在 BuildExecutor 任务组接入）。 */
-    public ReleaseEntity triggerBuild(Long releaseId) {
-        return releaseStateService.transition(releaseId, ReleaseState.BUILDING, "触发构建");
-    }
-
     @Data
     public static class ReleaseDetail {
         private ReleaseEntity release;

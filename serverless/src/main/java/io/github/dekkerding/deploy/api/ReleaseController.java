@@ -1,6 +1,7 @@
 package io.github.dekkerding.deploy.api;
 
 import io.github.dekkerding.deploy.domain.entity.ReleaseEntity;
+import io.github.dekkerding.deploy.service.BuildService;
 import io.github.dekkerding.deploy.service.ReleaseService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.List;
 public class ReleaseController {
 
     private final ReleaseService releaseService;
+    private final BuildService buildService;
 
     @Data
     public static class CreateReleaseRequest {
@@ -38,10 +40,10 @@ public class ReleaseController {
                 .body(releaseService.create(projectId, req.getVersion().trim()));
     }
 
-    /** 触发构建：CREATED → BUILDING。构建执行器接入前仅完成状态流转（任务组 3 挂接真实构建）。 */
+    /** 触发构建：CREATED → BUILDING，后台异步执行真实构建（任务 3.2 挂接）。 */
     @PostMapping("/releases/{id}/trigger")
     public ReleaseEntity trigger(@PathVariable Long id) {
-        return releaseService.triggerBuild(id);
+        return buildService.trigger(id);
     }
 
     @GetMapping("/releases/{id}")
