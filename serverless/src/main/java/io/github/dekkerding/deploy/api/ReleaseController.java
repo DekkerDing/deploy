@@ -1,5 +1,6 @@
 package io.github.dekkerding.deploy.api;
 
+import io.github.dekkerding.deploy.domain.entity.DeploymentEntity;
 import io.github.dekkerding.deploy.domain.entity.ReleaseEntity;
 import io.github.dekkerding.deploy.service.BuildLogService;
 import io.github.dekkerding.deploy.service.BuildService;
@@ -73,6 +74,12 @@ public class ReleaseController {
     @PostMapping("/releases/{id}/rollback")
     public ReleaseEntity rollback(@PathVariable Long id, @RequestParam Long targetEnvId) {
         return deliveryService.rollback(id, targetEnvId);
+    }
+
+    /** 按发布单查部署历史（任务 6.8，时间倒序）。 */
+    @GetMapping("/releases/{id}/deployments")
+    public List<DeploymentEntity> deploymentsByRelease(@PathVariable Long id) {
+        return deliveryService.listByRelease(id);
     }
 
     @GetMapping("/projects/{projectId}/releases")

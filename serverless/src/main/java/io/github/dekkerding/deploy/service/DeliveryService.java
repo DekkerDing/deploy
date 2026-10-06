@@ -225,9 +225,16 @@ public class DeliveryService {
         deploymentMapper.updateById(d);
     }
 
-    /** 按发布单查部署记录（任务 6.8 扩展按目标查询）。 */
+    /** 按发布单查部署记录（任务 6.8）。 */
     public List<DeploymentEntity> listByRelease(Long releaseId) {
         return deploymentMapper.selectList(new QueryWrapper<DeploymentEntity>()
                 .eq("release_id", releaseId).orderByDesc("id"));
+    }
+
+    /** 按目标环境查部署记录（任务 6.8，specs：按时间排序的部署历史）。 */
+    public List<DeploymentEntity> listByTargetEnv(Long targetEnvId) {
+        targetEnvService.getByIdOrThrow(targetEnvId); // 环境不存在报 400/404 语义错误
+        return deploymentMapper.selectList(new QueryWrapper<DeploymentEntity>()
+                .eq("target_env_id", targetEnvId).orderByDesc("id"));
     }
 }

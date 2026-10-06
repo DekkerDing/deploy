@@ -1,6 +1,8 @@
 package io.github.dekkerding.deploy.api;
 
+import io.github.dekkerding.deploy.domain.entity.DeploymentEntity;
 import io.github.dekkerding.deploy.domain.entity.TargetEnvEntity;
+import io.github.dekkerding.deploy.service.DeliveryService;
 import io.github.dekkerding.deploy.service.TargetEnvService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.util.List;
 public class TargetEnvController {
 
     private final TargetEnvService targetEnvService;
+    private final DeliveryService deliveryService;
 
     @Data
     public static class RegisterTargetEnvRequest {
@@ -74,5 +77,11 @@ public class TargetEnvController {
     @GetMapping("/{id}")
     public TargetEnvEntity detail(@PathVariable Long id) {
         return targetEnvService.getByIdOrThrow(id);
+    }
+
+    /** 按目标环境查部署历史（任务 6.8，时间倒序）。 */
+    @GetMapping("/{id}/deployments")
+    public List<DeploymentEntity> deployments(@PathVariable Long id) {
+        return deliveryService.listByTargetEnv(id);
     }
 }
