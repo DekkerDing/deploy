@@ -37,7 +37,7 @@
 ## 6. SSH JAR 交付 Provider
 
 - [x] 6.1 定义 `DeliveryProvider` SPI 与部署记录（deployment）生成；验证编译通过、SPI 可注册多实现
-- [ ] 6.2 基于 sshj 的通道能力（连接认证/SFTP 上传/远程命令执行，命令显式指定 shell）；验证对本机 OpenSSH 完成一次文件上传与命令执行
+- [x] 6.2 基于 sshj 的通道能力（连接认证/SFTP 上传/远程命令执行，命令显式指定 shell）；验证对本机 OpenSSH 完成一次文件上传与命令执行
 - [ ] 6.3 `PathPolicy` 跨 OS 路径策略（linux `/opt/<项目>/<版本>/`、windows `C:\apps\<项目>\<版本>\`，旧版本保留）；验证路径生成单测双平台正确
 - [ ] 6.4 `SystemdAdapter`（unit 模板生成、daemon-reload、restart）；验证模板生成单测正确（真实 systemd 待 linux 目标接入后验证）
 - [ ] 6.5 `WinSwAdapter`（WinSW XML 配置生成、Windows 服务安装与重启，指向新版本制品）；验证本机生成 XML 并成功安装/启动一个真实服务
