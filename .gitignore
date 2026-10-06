@@ -1,5 +1,7 @@
 # ---- Build outputs ----
-build/
+# 注意：不能用裸 build/ —— 会误伤 src/main/java/**/deploy/build/ 源码包（已踩坑）
+serverless/build/
+sample-apps/*/build/
 target/
 out/
 bin/
