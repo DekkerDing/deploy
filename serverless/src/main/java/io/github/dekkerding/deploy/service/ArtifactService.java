@@ -1,5 +1,6 @@
 package io.github.dekkerding.deploy.service;
 
+import io.github.dekkerding.deploy.build.ArtifactPlatformDetector;
 import io.github.dekkerding.deploy.domain.entity.ArtifactEntity;
 import io.github.dekkerding.deploy.domain.mapper.ArtifactMapper;
 import lombok.RequiredArgsConstructor;
@@ -66,8 +67,12 @@ public class ArtifactService {
             a.setStoragePath(projectName + "/" + version + "/" + name);
             a.setSizeBytes(sizeOf(target));
             a.setSha256(sha256Of(target));
-            // 平台描述符：任务 4.2 填充（纯 JAR → PORTABLE）
-            a.setPortable(Boolean.FALSE);
+            // 平台描述符（任务 4.2）：纯 JAR/WAR → PORTABLE；原生/未知 → 绑定构建宿主平台
+            ArtifactPlatformDetector.Descriptor d = ArtifactPlatformDetector.detect(name);
+            a.setPortable(d.portable);
+            a.setPlatformOs(d.os);
+            a.setPlatformArch(d.arch);
+            a.setPlatformLibc(d.libc);
             a.setCreatedAt(LocalDateTime.now());
             artifactMapper.insert(a);
             saved.add(a);

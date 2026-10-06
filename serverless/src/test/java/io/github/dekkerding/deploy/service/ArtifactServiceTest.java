@@ -58,6 +58,24 @@ class ArtifactServiceTest {
     }
 
     @Test
+    void 原生exe入库时声明宿主平台且非PORTABLE(@TempDir Path tmp) throws Exception {
+        Path exe = tmp.resolve("agent.exe");
+        Files.write(exe, new byte[]{0x4D, 0x5A, 0x00, 0x01});
+        ArtifactMapper mapper = mock(ArtifactMapper.class);
+        when(mapper.insert(any(ArtifactEntity.class))).thenReturn(1);
+        ArtifactService svc = newService(tmp.resolve("storage"), mapper);
+
+        List<ArtifactEntity> saved = svc.ingest(7L, 3L, "demo", "1.0.0", Collections.singletonList(exe));
+
+        assertThat(saved).hasSize(1);
+        ArtifactEntity a = saved.get(0);
+        assertThat(a.getPortable()).isFalse();
+        assertThat(a.getPlatformOs()).isEqualTo("windows");
+        assertThat(a.getPlatformArch()).isEqualTo("x86_64");
+        assertThat(a.getPlatformLibc()).isEqualTo("msvc");
+    }
+
+    @Test
     void 目录型产物被跳过(@TempDir Path tmp) throws Exception {
         Path dist = tmp.resolve("dist");
         Files.createDirectories(dist);
