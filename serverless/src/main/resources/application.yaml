@@ -28,6 +28,8 @@ mybatis-plus:
 deploy:
     storage-dir: ./storage      # 制品库根目录: storage/{project}/{version}/
     log-dir: ./logs             # 构建日志: logs/{releaseId}/build.log
+    winsw:
+        exe-path: F:/workspace/deploy/vendor/winsw/WinSW-x64.exe  # 平台侧 WinSW（仓库根 vendor/，绝对路径避免 cwd 歧义）
     build:
         timeout-millis: 600000    # 单次构建超时（10 分钟），超时强杀子进程并落 FAILED
         concurrency: 2            # 构建并发线程数（任务 3.4）

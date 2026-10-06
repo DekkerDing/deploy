@@ -92,6 +92,15 @@ public class SshDeliveryProvider implements DeliveryProvider {
                     winSwAdapter.targetWinswExePath(ctx));
         }
 
+        // 幂等清理（升级场景）：同 id 服务可能已存在（如 WinSW install 遇 1073），
+        // 先停用旧服务再全新安装；停用失败仅告警——服务可能本就未安装或已宕机
+        for (String cmd : sm.deactivateCommands(ctx)) {
+            try {
+                execOrThrow(client, cmd, "停用旧服务");
+            } catch (DeliveryException e) {
+                log.warn("停用旧服务未成功（继续安装）: {}", e.getMessage());
+            }
+        }
         for (String cmd : sm.activateCommands(ctx)) {
             execOrThrow(client, cmd, "激活服务");
         }
