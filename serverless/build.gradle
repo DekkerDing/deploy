@@ -100,3 +100,43 @@ dependencyManagement{
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+def reactDir = "${rootDir}/../frontend-web"
+def reactBuildDist = "${reactDir}/dist"
+def staticDir = "${buildDir}/resources/main/static"
+
+def isWindows = System.getProperty('os.name', '').toLowerCase().contains('windows')
+
+task reactInstall(type: Exec) {
+    workingDir reactDir
+    if (isWindows) {
+        commandLine 'cmd', '/c', 'npm.cmd', 'install'
+    } else {
+        commandLine 'npm', 'install'
+    }
+}
+
+task reactBuild(type: Exec) {
+    workingDir reactDir
+    if (isWindows) {
+        commandLine 'cmd', '/c', 'npx.cmd', 'vite', 'build'
+    } else {
+        commandLine 'npx', 'vite', 'build'
+    }
+}
+reactBuild.dependsOn reactInstall
+
+task cleanStatic(type: Delete) {
+    delete staticDir
+}
+
+task copyReactAssets(type: Copy) {
+    dependsOn cleanStatic, reactBuild
+    from reactBuildDist
+    into staticDir
+    includeEmptyDirs = false
+    // 始终执行，避免增量构建跳过
+    outputs.upToDateWhen { false }
+}
+
+processResources.dependsOn copyReactAssets

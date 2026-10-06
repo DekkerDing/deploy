@@ -1,0 +1,127 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { Package, Hammer, Rocket, RotateCcw, Download, Server } from "lucide-react";
+import { useReleaseStore } from "../stores/releaseStore";
+import { useTargetEnvStore } from "../stores/targetEnvStore";
+import { LoadingSpinner, ErrorMessage, Badge, formatSize, formatDate, STATE_MAP } from "../components/common";
+
+export default function ReleaseDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const releaseId = Number(id);
+  const { detail, loading, error, loadDetail, loadDeployments, deployments, triggerBuild, deploy, rollback } = useReleaseStore();
+  const { envs, loadEnvs } = useTargetEnvStore();
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (releaseId) { loadDetail(releaseId); loadDeployments(releaseId); loadEnvs(); }
+  }, [releaseId, loadDetail, loadDeployments, loadEnvs]);
+
+  if (loading || !detail) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
+
+  const { release, artifacts, events } = detail;
+  const s = STATE_MAP[release.state] || { label: release.state, color: "#6b7280" };
+
+  return (
+    <div className="p-6 space-y-4">
+      {actionMsg && (
+        <div className="flex items-center justify-between rounded-lg border border-accent/30 bg-accent/10 px-4 py-2 text-sm text-accent-dark">
+          {actionMsg}
+          <button onClick={() => setActionMsg(null)} className="text-gray-400 hover:text-gray-600">&times;</button>
+        </div>
+      )}
+
+      <div className="card">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Package size={20} className="text-primary" />
+            </div>
+            <div>
+              <div className="text-lg font-bold">Release v{release.version}</div>
+              <Badge color={s.color}>{s.label}</Badge>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {release.state === "CREATED" && (
+              <button onClick={async () => { setActionMsg("触发构建中..."); await triggerBuild(releaseId); setActionMsg("构建已触发"); }} className="btn-primary">
+                <Hammer size={16} /> 触发构建
+              </button>
+            )}
+            {release.state === "BUILT" && (
+              <button onClick={async () => { setActionMsg("部署中..."); const r = await deploy(releaseId, 0); setActionMsg(r ? "部署已触发" : "部署失败"); }} className="btn-primary">
+                <Rocket size={16} /> 部署
+              </button>
+            )}
+            {release.state === "DEPLOYED" && (
+              <button onClick={async () => { setActionMsg("回滚中..."); const r = await rollback(releaseId, 0); setActionMsg(r ? "回滚已触发" : "回滚失败"); }} className="btn-secondary">
+                <RotateCcw size={16} /> 回滚
+              </button>
+            )}
+          </div>
+        </div>
+        {release.failReason && (
+          <div className="mt-3 rounded-lg border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">失败原因: {release.failReason}</div>
+        )}
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div><span className="text-gray-500">创建时间</span> {formatDate(release.createdAt)}</div>
+          <div><span className="text-gray-500">更新时间</span> {formatDate(release.updatedAt)}</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h2 className="mb-3 text-lg font-bold">制品 ({artifacts.length})</h2>
+        {artifacts.length === 0 ? <p className="py-8 text-center text-sm text-gray-400">暂无制品</p> : (
+          <div className="divide-y dark:divide-gray-700">
+            {artifacts.map((a) => (
+              <div key={a.id} className="flex items-center gap-3 py-3">
+                <Download size={18} className="text-gray-400" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{a.fileName}</div>
+                  <div className="text-xs text-gray-500">{formatSize(a.sizeBytes)}{a.platformOs ? " | " + a.platformOs + "/" + a.platformArch : ""}{a.portable ? " | 便携" : ""}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h2 className="mb-3 text-lg font-bold">事件日志</h2>
+        <div className="space-y-2">
+          {events.map((ev) => {
+            const st = STATE_MAP[ev.toState] || { label: ev.toState, color: "#6b7280" };
+            return (
+              <div key={ev.id} className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-700/30">
+                <Badge color={st.color}>{st.label}</Badge>
+                {ev.message && <span className="text-xs text-gray-600 dark:text-gray-400">{ev.message}</span>}
+                <span className="ml-auto text-xs text-gray-400">{formatDate(ev.createdAt)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="card">
+        <h2 className="mb-3 text-lg font-bold">部署记录</h2>
+        {deployments.length === 0 ? <p className="py-8 text-center text-sm text-gray-400">暂无部署</p> : (
+          <div className="divide-y dark:divide-gray-700">
+            {deployments.map((d) => {
+              const env = envs.find((e) => e.id === d.targetEnvId);
+              return (
+                <div key={d.id} className="flex items-center gap-3 py-3">
+                  <Server size={18} className="text-gray-400" />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{env ? env.name : "环境 #" + d.targetEnvId}</div>
+                    <div className="text-xs text-gray-500">{formatDate(d.startedAt)}</div>
+                  </div>
+                  <Badge color={d.result === "SUCCESS" ? "#10b981" : d.result === "FAILED" ? "#ef4444" : "#6b7280"}>{d.result}</Badge>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
