@@ -6,6 +6,7 @@ import io.github.dekkerding.deploy.build.BuildExecutorRegistry;
 import io.github.dekkerding.deploy.build.BuildResult;
 import io.github.dekkerding.deploy.build.BuildType;
 import io.github.dekkerding.deploy.domain.ReleaseState;
+import io.github.dekkerding.deploy.domain.entity.ArtifactEntity;
 import io.github.dekkerding.deploy.domain.entity.ProjectEntity;
 import io.github.dekkerding.deploy.domain.entity.ReleaseEntity;
 import io.github.dekkerding.deploy.domain.mapper.ReleaseMapper;
@@ -18,6 +19,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -37,6 +39,7 @@ public class BuildService {
     private final ReleaseStateService releaseStateService;
     private final ProjectService projectService;
     private final BuildExecutorRegistry executorRegistry;
+    private final ArtifactService artifactService;
 
     @Value("${deploy.log-dir:./logs}")
     private String logDir;
@@ -125,8 +128,12 @@ public class BuildService {
         BuildResult result = executor.execute(ctx);
 
         if (result.isSuccess()) {
+            // 制品入库（任务 4.1）：入库成功才落 BUILT，入库异常走 FAILED
+            List<ArtifactEntity> artifacts = artifactService.ingest(
+                    releaseId, project.getId(), project.getName(), release.getVersion(),
+                    result.getProducedFiles());
             releaseStateService.transition(releaseId, ReleaseState.BUILT,
-                    "构建成功: 产物 " + result.getProducedFiles().size() + " 个（"
+                    "构建成功: 制品入库 " + artifacts.size() + " 个（"
                             + result.getProducedFiles() + "）");
         } else {
             releaseStateService.transition(releaseId, ReleaseState.FAILED,
