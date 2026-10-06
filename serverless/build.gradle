@@ -60,6 +60,7 @@ javadoc {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // 持久化: H2(file, 零安装) + MyBatis-Plus（迁 MySQL 仅换连接配置）
     // 显式钉版本：环境中存在将 h2 解析为 1.4.200 的规则，1.x 会写旧格式 db 文件
