@@ -62,14 +62,31 @@ CREATE TABLE IF NOT EXISTS target_env (
     credential    VARCHAR(1024),                  -- MVP: 密码/私钥明文（design D10 已声明边界）
     jvm_version   INT,                            -- runtime_type=JVM 时的目标大版本
     health_check_port INT,                        -- 部署后 TCP 探活端口（空=跳过健康检查）
+    base_port     INT,                            -- 多实例基准端口：第 i 实例监听 base_port+(i-1)（空=单实例语义）
     probe_status  VARCHAR(16)  NOT NULL DEFAULT 'UNKNOWN', -- KNOWN / UNKNOWN
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_target_env_name UNIQUE (name)
 );
 
--- 已有库补列（H2 幂等；任务 6.7 健康检查端口）
+-- 已有库补列（H2 幂等；任务 6.7 健康检查端口 / 5.1 多实例基准端口）
 ALTER TABLE target_env ADD COLUMN IF NOT EXISTS health_check_port INT;
+ALTER TABLE target_env ADD COLUMN IF NOT EXISTS base_port INT;
+
+-- 服务实例（design D4：表名 service_instance 避开 instance 方言保留字，语义不变）
+-- 旧单实例部署视为 seq=1（5.1 向后兼容）；缩容裁尾时删行
+CREATE TABLE IF NOT EXISTS service_instance (
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    target_env_id BIGINT      NOT NULL,
+    release_id    BIGINT      NOT NULL,           -- 所属发布单（该实例当前运行的版本）
+    artifact_id   BIGINT      NOT NULL,
+    seq           INT         NOT NULL,           -- 实例编号 1..N（端口 = base_port + seq - 1）
+    port          INT         NOT NULL,
+    status        VARCHAR(16) NOT NULL,           -- RUNNING / STOPPED
+    created_at    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_service_instance_env_seq UNIQUE (target_env_id, seq)
+);
 
 CREATE TABLE IF NOT EXISTS deployment (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,

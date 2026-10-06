@@ -3,17 +3,33 @@ import { apiGet, apiPost } from '../core/api';
 import { TargetEnv } from '../models/target-env';
 import { Deployment } from '../models/deployment';
 
+/** 实例矩阵视图（后端 InstanceView：编号/端口/版本/运行与健康状态） */
+export interface InstanceView {
+  id: number;
+  seq: number;
+  port: number;
+  releaseId: number;
+  version: string | null;
+  status: string;
+  healthy: boolean | null;
+  healthMessage: string | null;
+}
+
 interface TargetEnvState {
   envs: TargetEnv[];
   deployments: Deployment[];
   /** 每环境最近一次部署（时间倒序取首个），null=从未部署——健康灯数据源 */
   envHealth: Record<number, Deployment | null>;
+  /** 实例矩阵（specs/instance-scaling），key=targetEnvId */
+  instances: Record<number, InstanceView[]>;
   loading: boolean;
   error: string | null;
 
   loadEnvs: () => Promise<void>;
   loadDeployments: (envId: number) => Promise<void>;
   loadEnvHealth: () => Promise<void>;
+  loadInstances: (envId: number) => Promise<void>;
+  scaleTo: (envId: number, count: number) => Promise<string | null>;
   register: (data: {
     name: string;
     os: string;
@@ -27,6 +43,7 @@ interface TargetEnvState {
     credential?: string;
     jvmVersion?: number;
     healthCheckPort?: number;
+    basePort?: number;
   }) => Promise<TargetEnv | null>;
 }
 
@@ -34,6 +51,7 @@ export const useTargetEnvStore = create<TargetEnvState>((set, get) => ({
   envs: [],
   deployments: [],
   envHealth: {},
+  instances: {},
   loading: false,
   error: null,
 
@@ -67,6 +85,29 @@ export const useTargetEnvStore = create<TargetEnvState>((set, get) => ({
       set({ deployments: data });
     } catch (e) {
       set({ error: (e as Error).message });
+    }
+  },
+
+  loadInstances: async (envId) => {
+    try {
+      const data = await apiGet<InstanceView[]>(`/api/target-envs/${envId}/instances`);
+      set((s) => ({ instances: { ...s.instances, [envId]: data } }));
+    } catch {
+      // 环境无实例或查询失败时置空，矩阵呈现"暂无实例"
+      set((s) => ({ instances: { ...s.instances, [envId]: [] } }));
+    }
+  },
+
+  scaleTo: async (envId, count) => {
+    set({ error: null });
+    try {
+      const res = await apiPost<{ message: string }>(
+        `/api/target-envs/${envId}/scale?count=${count}`
+      );
+      return res.message;
+    } catch (e) {
+      set({ error: (e as Error).message });
+      return null;
     }
   },
 

@@ -51,6 +51,9 @@ public class TargetEnvEntity {
     /** 部署后 TCP 探活端口（specs/ssh-jar-delivery 健康检查；空=跳过探活） */
     private Integer healthCheckPort;
 
+    /** 多实例基准端口（specs/instance-scaling）：第 i 实例监听 basePort+(i-1)；空=单实例语义 */
+    private Integer basePort;
+
     /** KNOWN / UNKNOWN */
     private String probeStatus;
 

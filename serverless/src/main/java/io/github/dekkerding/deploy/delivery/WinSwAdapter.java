@@ -25,9 +25,10 @@ public class WinSwAdapter implements ServiceManager {
         return "windows".equalsIgnoreCase(os);
     }
 
-    /** 服务 id：项目名净化（WinSW 同时作为 exe/xml 基名）。 */
+    /** 服务 id：项目名净化（WinSW 同时作为 exe/xml 基名）；多实例带 -N 后缀（design D4）。 */
     public String serviceId(DeliveryContext ctx) {
-        return PathPolicy.sanitize(ctx.getProject().getName());
+        String base = PathPolicy.sanitize(ctx.getProject().getName());
+        return ctx.getInstanceSeq() != null ? base + "-" + ctx.getInstanceSeq() : base;
     }
 
     @Override
@@ -35,6 +36,11 @@ public class WinSwAdapter implements ServiceManager {
         String installDir = withTrailingSeparator(ctx.getRemoteInstallDir());
         String jar = ctx.getArtifact().getFileName();
         String javaExe = System.getProperty("java.home") + "\\bin\\java.exe";
+        // 实例端口注入（Spring Boot 惯例 --server.port；多实例端口错开的关键）
+        String args = "-jar \"" + installDir + jar + "\"";
+        if (ctx.getInstancePort() != null) {
+            args += " --server.port=" + ctx.getInstancePort();
+        }
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                 + "<service>\n"
                 + "  <id>" + serviceId(ctx) + "</id>\n"
@@ -42,7 +48,7 @@ public class WinSwAdapter implements ServiceManager {
                 + "  <description>deploy-platform managed: "
                 + ctx.getProject().getName() + " " + ctx.getRelease().getVersion() + "</description>\n"
                 + "  <executable>" + javaExe + "</executable>\n"
-                + "  <arguments>-jar \"" + installDir + jar + "\"</arguments>\n"
+                + "  <arguments>" + args + "</arguments>\n"
                 + "  <workingdirectory>" + installDir + "</workingdirectory>\n"
                 + "  <logpath>" + installDir + "logs</logpath>\n"
                 + "  <log mode=\"roll\"></log>\n"

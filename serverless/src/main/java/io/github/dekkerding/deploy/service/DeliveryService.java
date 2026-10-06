@@ -40,6 +40,7 @@ public class DeliveryService {
     private final RoutingResolver routingResolver;
     private final JvmCompatPrecheck jvmCompatPrecheck;
     private final DeliveryProviderRegistry providerRegistry;
+    private final InstanceService instanceService;
 
     /** 触发交付（异步执行，先同步校验 BUILT 并流转 DEPLOYING）。 */
     public ReleaseEntity deploy(Long releaseId, Long targetEnvId) {
@@ -73,6 +74,7 @@ public class DeliveryService {
             finishDeployment(deployment, "SUCCESS", message);
             releaseStateService.transition(releaseId, ReleaseState.DEPLOYED,
                     "交付成功 → " + ctx.getTargetEnv().getName() + ": " + message);
+            recordSeq1(ctx, deployment);
         } catch (Exception e) {
             String reason = e instanceof DeliveryException ? e.getMessage()
                     : "交付异常: " + e.getClass().getSimpleName() + ": " + e.getMessage();
@@ -139,6 +141,7 @@ public class DeliveryService {
             deploymentMapper.updateById(current);
             releaseStateService.transition(releaseId, ReleaseState.ROLLED_BACK,
                     "回滚完成: " + message);
+            recordSeq1(targetCtx, record);
         } catch (Exception e) {
             String reason = e instanceof DeliveryException ? e.getMessage()
                     : "回滚异常: " + e.getClass().getSimpleName() + ": " + e.getMessage();
@@ -149,6 +152,17 @@ public class DeliveryService {
             // 掩盖真实失败原因并把发布单卡死在无留痕状态。）
             releaseStateService.noteFailure(releaseId,
                     "回滚失败（当前服务可能仍在运行，可重试回滚）: " + reason, reason);
+        }
+    }
+
+    /** 交付/回滚成功后登记（upsert）seq=1 实例行（specs/instance-scaling 旧单实例=seq 1 兼容）。
+     *  登记失败仅告警：环境未配置任何端口语义时无实例化基础，不破坏交付成功结果。 */
+    private void recordSeq1(DeliveryContext ctx, DeploymentEntity deployment) {
+        try {
+            instanceService.record(ctx.getTargetEnv(), deployment.getReleaseId(),
+                    deployment.getArtifactId(), 1, InstanceService.STATUS_RUNNING);
+        } catch (Exception e) {
+            log.warn("seq=1 实例行登记失败（不影响交付结果）: {}", e.getMessage());
         }
     }
 

@@ -3,6 +3,7 @@ package io.github.dekkerding.deploy.api;
 import io.github.dekkerding.deploy.domain.entity.DeploymentEntity;
 import io.github.dekkerding.deploy.domain.entity.TargetEnvEntity;
 import io.github.dekkerding.deploy.service.DeliveryService;
+import io.github.dekkerding.deploy.service.InstanceScalingService;
 import io.github.dekkerding.deploy.service.TargetEnvService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -13,11 +14,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /** 目标环境 API（specs/delivery-routing: 注册/列表）。 */
 @RestController
@@ -27,6 +31,7 @@ public class TargetEnvController {
 
     private final TargetEnvService targetEnvService;
     private final DeliveryService deliveryService;
+    private final InstanceScalingService instanceScalingService;
 
     @Data
     public static class RegisterTargetEnvRequest {
@@ -49,6 +54,8 @@ public class TargetEnvController {
         private Integer jvmVersion;
         /** 部署后 TCP 探活端口（可选，空=跳过健康检查） */
         private Integer healthCheckPort;
+        /** 多实例基准端口（可选：第 i 实例监听 basePort+(i-1)；空=单实例语义） */
+        private Integer basePort;
     }
 
     @PostMapping
@@ -66,6 +73,7 @@ public class TargetEnvController {
         env.setCredential(req.getCredential());
         env.setJvmVersion(req.getJvmVersion());
         env.setHealthCheckPort(req.getHealthCheckPort());
+        env.setBasePort(req.getBasePort());
         return ResponseEntity.status(HttpStatus.CREATED).body(targetEnvService.register(env));
     }
 
@@ -83,5 +91,20 @@ public class TargetEnvController {
     @GetMapping("/{id}/deployments")
     public List<DeploymentEntity> deployments(@PathVariable Long id) {
         return deliveryService.listByTargetEnv(id);
+    }
+
+    /** 扩缩容（specs/instance-scaling：异步执行，前端轮询实例矩阵看进展）。 */
+    @PostMapping("/{id}/scale")
+    public ResponseEntity<Map<String, Object>> scale(@PathVariable Long id, @RequestParam int count) {
+        String message = instanceScalingService.scaleTo(id, count);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("message", message);
+        return ResponseEntity.accepted().body(body);
+    }
+
+    /** 实例矩阵（specs：每实例编号、端口、版本、运行/健康状态）。 */
+    @GetMapping("/{id}/instances")
+    public List<InstanceScalingService.InstanceView> instances(@PathVariable Long id) {
+        return instanceScalingService.listMatrix(id);
     }
 }

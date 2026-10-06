@@ -9,7 +9,7 @@ import lombok.Data;
 
 /** 一次交付的完整上下文（编排层组装，SPI 只读）。 */
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class DeliveryContext {
 
     private ReleaseEntity release;
@@ -29,4 +29,12 @@ public class DeliveryContext {
 
     /** 部署记录 id（留痕行由编排层先建后调 SPI） */
     private Long deploymentId;
+
+    // ---- 多实例（specs/instance-scaling / design D4；空 = 单实例默认语义，向后兼容） ----
+
+    /** 实例编号 1..N：非空时服务名带实例后缀（systemd app@N / WinSW app-N） */
+    private Integer instanceSeq;
+
+    /** 实例监听端口（= env.basePort + seq - 1）：非空时注入服务启动参数并用于实例级探活 */
+    private Integer instancePort;
 }

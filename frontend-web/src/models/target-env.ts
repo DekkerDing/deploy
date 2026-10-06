@@ -12,6 +12,8 @@ export interface TargetEnv {
   credential?: string;
   jvmVersion?: number;
   healthCheckPort?: number;
+  /** 多实例基准端口：第 i 实例监听 basePort+(i-1)；空=单实例语义 */
+  basePort?: number;
   probeStatus: string;
   createdAt: string;
   updatedAt: string;

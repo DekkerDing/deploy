@@ -70,6 +70,23 @@ public class SshDeliveryProvider implements DeliveryProvider {
         }
     }
 
+    /** 停止并注销指定上下文的服务（specs/instance-scaling 缩容裁尾；命令失败仅告警不阻断）。 */
+    public void deactivateService(DeliveryContext ctx) {
+        fillInstallDir(ctx);
+        ServiceManager sm = resolveServiceManager(ctx.getTargetEnv().getOs());
+        try (SSHClient client = connect(ctx.getTargetEnv())) {
+            for (String cmd : sm.deactivateCommands(ctx)) {
+                try {
+                    execOrThrow(client, cmd, "停用实例 seq=" + ctx.getInstanceSeq());
+                } catch (DeliveryException e) {
+                    log.warn("缩容停用命令未成功（继续，目标机可能有残留需对账）: {}", e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            throw new DeliveryException("SSH 通道异常: " + e.getMessage(), e);
+        }
+    }
+
     /** 上传制品与服务定义并执行激活命令（deliver 与 rollback 复用）。 */
     private void installAndActivate(SSHClient client, DeliveryContext ctx) throws IOException {
         TargetEnvEntity env = ctx.getTargetEnv();
@@ -109,13 +126,15 @@ public class SshDeliveryProvider implements DeliveryProvider {
         }
     }
 
-    /** 健康检查门（specs：探活成功方记成功；未配置端口则跳过并注明）。 */
+    /** 健康检查门（specs：探活成功方记成功；未配置端口则跳过并注明）。
+     * 多实例交付按实例端口探活（specs/instance-scaling 实例级健康检查）。 */
     private String healthGate(DeliveryContext ctx, String summary) {
         TargetEnvEntity env = ctx.getTargetEnv();
-        if (env.getHealthCheckPort() == null) {
+        Integer probePort = ctx.getInstancePort() != null ? ctx.getInstancePort() : env.getHealthCheckPort();
+        if (probePort == null) {
             return summary + "；未配置 healthCheckPort，跳过探活";
         }
-        HealthChecker.HealthResult r = healthChecker.check(env.getHost(), env.getHealthCheckPort());
+        HealthChecker.HealthResult r = healthChecker.check(env.getHost(), probePort);
         if (!r.healthy) {
             throw new DeliveryException(summary + "；" + r.message);
         }
