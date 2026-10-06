@@ -6,6 +6,23 @@ spring:
         name: deploy-platform
     main:
         allow-bean-definition-overriding: true
+    datasource:
+        url: jdbc:h2:file:./data/deploy;AUTO_SERVER=TRUE
+        driver-class-name: org.h2.Driver
+        username: sa
+        password: ''
+    sql:
+        init:
+            mode: always
+            schema-locations: classpath:schema.sql
+    h2:
+        console:
+            enabled: true
+            path: /h2-console
+
+mybatis-plus:
+    configuration:
+        map-underscore-to-camel-case: true
 
 # 平台运行期目录（制品/日志等，运行时自动创建，均已 gitignore）
 deploy:

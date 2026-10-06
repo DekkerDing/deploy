@@ -62,7 +62,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
 
     // 持久化: H2(file, 零安装) + MyBatis-Plus（迁 MySQL 仅换连接配置）
-    runtimeOnly 'com.h2database:h2'
+    // 显式钉版本：环境中存在将 h2 解析为 1.4.200 的规则，1.x 会写旧格式 db 文件
+    runtimeOnly 'com.h2database:h2:2.1.214'
     implementation 'com.baomidou:mybatis-plus-boot-starter:3.5.3.1'
 
     // SSH 通道: SFTP 上传 / 远程命令执行

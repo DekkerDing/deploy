@@ -27,8 +27,9 @@ Thumbs.db
 logs/
 storage/
 plugins/
+data/
 *.h2.db
-*.h2.db.*
+*.mv.db
 *.trace.db
 
 # ---- Maven 本地遗留 ----

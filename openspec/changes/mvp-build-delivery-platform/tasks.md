@@ -7,7 +7,7 @@
 
 ## 2. 领域模型与存储
 
-- [ ] 2.1 `build.gradle` 引入 H2、MyBatis-Plus、sshj 依赖；验证 `gradlew build` 依赖解析与编译通过
+- [x] 2.1 `build.gradle` 引入 H2、MyBatis-Plus、sshj 依赖；验证 `gradlew build` 依赖解析与编译通过
 - [ ] 2.2 建立六张表（project / release / release_event / artifact / target_env / deployment）的实体与 Mapper；验证应用启动自动建表、H2 console 可查
 - [ ] 2.3 实现 `ReleaseState` 状态机（枚举+显式转移表，非法转移抛领域异常，每次转移追加 release_event）；验证单测覆盖全部合法流转与典型非法流转
 - [ ] 2.4 实现项目与发布单 REST API（注册/列表/详情/创建发布单/触发/状态查询）；验证 curl 走通 CRUD、重复项目名与非法状态流转返回明确错误
