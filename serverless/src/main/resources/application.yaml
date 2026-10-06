@@ -37,3 +37,8 @@ deploy:
         timeout-millis: 600000    # 单次构建超时（10 分钟），超时强杀子进程并落 FAILED
         concurrency: 2            # 构建并发线程数（任务 3.4）
         queue-capacity: 50        # 等待队列容量：超并发任务排队不失败
+
+# 插件系统（plugin-system change）：jar 放入目录 → 重启加载；disabled 子目录内 jar 不加载
+plugins:
+    dir: ./plugins                # 插件目录（相对工作目录或绝对路径），不存在时正常启动
+    disabled-subdir: disabled     # 禁用子目录：jar 移入后下次启动排除

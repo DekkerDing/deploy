@@ -37,6 +37,11 @@ public class SshDeliveryProvider implements DeliveryProvider {
     }
 
     @Override
+    public java.util.Set<String> declaredReaches() {
+        return java.util.Collections.singleton("SSH");
+    }
+
+    @Override
     public String deliver(DeliveryContext ctx) {
         fillInstallDir(ctx);
         try (SSHClient client = connect(ctx.getTargetEnv())) {

@@ -27,11 +27,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ProjectController {
 
-    /** 支持的构建类型（与 specs/build-execution 的进程式构建对应） */
-    public static final Set<String> SUPPORTED_BUILD_TYPES = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList("MAVEN", "GRADLE", "NPM", "FLUTTER")));
-
     private final ProjectService projectService;
+    /** 支持的构建类型从注册表动态取（plugin-system：插件贡献的类型立即可见）。 */
+    private final io.github.dekkerding.deploy.build.BuildExecutorRegistry executorRegistry;
 
     @Data
     public static class CreateProjectRequest {
@@ -47,9 +45,10 @@ public class ProjectController {
     @PostMapping
     public ResponseEntity<ProjectEntity> register(@Valid @RequestBody CreateProjectRequest req) {
         String buildType = req.getBuildType().trim().toUpperCase();
-        if (!SUPPORTED_BUILD_TYPES.contains(buildType)) {
+        java.util.Set<String> supported = executorRegistry.supportedTypeNames();
+        if (!supported.contains(buildType)) {
             throw new IllegalArgumentException("不支持的构建类型: " + req.getBuildType()
-                    + "（支持: " + SUPPORTED_BUILD_TYPES + "）");
+                    + "（支持: " + supported + "）");
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.register(
                 req.getName().trim(), buildType, req.getSourcePath().trim(), req.getDescription()));

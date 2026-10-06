@@ -1,5 +1,8 @@
 package io.github.dekkerding.deploy.delivery;
 
+import java.util.Collections;
+import java.util.Set;
+
 /**
  * 交付提供者 SPI（design D8）：
  * 通道（sshj / local / 未来 winrm）× 服务管理器适配（systemd / WinSW / 裸进程）。
@@ -21,4 +24,12 @@ public interface DeliveryProvider {
      * 两个上下文均由编排层从 deployment 留痕组装；失败抛 DeliveryException。
      */
     String rollback(DeliveryContext rollbackTo, DeliveryContext current);
+
+    /**
+     * 自述承接的交付通道名集合（插件系统：枚举 API 数据源，Extension-Api-Version 1.0 起）。
+     * 默认空集 = 通道不可枚举（仍可被 resolve 命中）；内建/插件实现按需覆盖。
+     */
+    default Set<String> declaredReaches() {
+        return Collections.emptySet();
+    }
 }
