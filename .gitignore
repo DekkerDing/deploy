@@ -1,0 +1,35 @@
+# ---- Build outputs ----
+build/
+target/
+out/
+bin/
+*.class
+
+# ---- Gradle ----
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# ---- IDE ----
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+
+# ---- OS ----
+Thumbs.db
+.DS_Store
+
+# ---- 平台运行期产物（不入库）----
+logs/
+storage/
+plugins/
+*.h2.db
+*.h2.db.*
+*.trace.db
+
+# ---- Maven 本地遗留 ----
+mvnw.tmp/

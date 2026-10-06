@@ -1,0 +1,72 @@
+#server:
+#    port: 8080
+#
+spring:
+    main:
+        allow-bean-definition-overriding: true
+        allow-circular-references: true
+
+#    datasource:
+#        dynamic:
+#            primary: storage
+#            strict: false
+#            lazy: false
+#            hikari:
+#                connection-timeout: 6000
+#                validation-timeout: 6000
+#                idle-timeout: 30000
+#                leak-detection-threshold: 5000
+#                max-lifetime: 30000
+#                max-pool-size: 3
+#                min-idle: 1
+#                initialization-fail-timeout: 6000
+#                transaction-isolation-name: TRANSACTION_READ_COMMITTED
+#                is-auto-commit: true
+#                is-read-only: false
+#                is-isolate-internal-queries: false
+#                is-register-mbeans: false
+#                is-allow-pool-suspension: false
+#                health-check-properties:
+#                    enabled: true
+#                    connection-timeout: 6000
+#                    validation-timeout: 6000
+#                    health-check-registry-name: healthCheckRegistry
+#                data-source-properties:
+#                    serverTimezone: Asia/Shanghai
+#                    characterEncoding: utf-8
+#                    useUnicode: true
+#                    useSSL: false
+#                    autoReconnect: true
+#                    cachePrepStmts: true
+#                    prepStmtCacheSize: 250
+#                    prepStmtCacheSqlLimit: 2048
+#                    useServerPrepStmts: true
+#                    useLocalSessionState: true
+#                    rewriteBatchedStatements: true
+#                    cacheResultSetMetadata: true
+#                    cacheServerConfiguration: true
+#                    elideSetAutoCommits: true
+#                    maintainTimeStats: false
+#                    allowPublicKeyRetrieval: true
+#            datasource:
+#                storage:
+#                    url:
+#                    username:
+#                    password:
+#                    type:
+#                    driverClass:
+#                    hikari:
+#                        max-pool-size: 3
+#                        min-idle: 1
+#
+#logging:
+#    config: classpath:logback-spring.xml
+#    level:
+#        com.chz.mapper: debug
+#        com.baomidou.dynamic: debug
+#
+#mybatis-plus:
+#    configuration:
+#        log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#        cache-enabled: false #禁用二级缓存
+#        local-cache-scope: statement #一级缓存指定为statement级别
