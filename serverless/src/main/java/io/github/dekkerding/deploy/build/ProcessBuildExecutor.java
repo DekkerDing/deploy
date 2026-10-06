@@ -98,7 +98,8 @@ public class ProcessBuildExecutor implements BuildExecutor {
                         appendLog(log, "[platform] 构建超时(" + ctx.getTimeoutMillis() + "ms)，已强制终止: "
                                 + join(cmd) + System.lineSeparator());
                         return BuildResult.fail(-1,
-                                "构建超时(" + ctx.getTimeoutMillis() + "ms): " + join(cmd));
+                                "构建超时(" + ctx.getTimeoutMillis() + "ms): " + join(cmd)
+                                        + tailSummary(log));
                     }
                 } else {
                     p.waitFor();
@@ -106,7 +107,7 @@ public class ProcessBuildExecutor implements BuildExecutor {
                 int exit = p.exitValue();
                 if (exit != 0) {
                     return BuildResult.fail(exit, "命令执行失败(exit=" + exit + "): " + join(cmd)
-                            + "，日志: " + log);
+                            + "，日志: " + log + tailSummary(log));
                 }
             }
             List<Path> produced = discoverProduced(ctx.getBuildType(), source);
@@ -201,6 +202,27 @@ public class ProcessBuildExecutor implements BuildExecutor {
                     StandardOpenOption.APPEND);
         } catch (IOException ignored) {
             // 日志追加失败不影响构建本身
+        }
+    }
+
+    /** 失败消息附带的日志尾摘要（任务 3.5）：末尾至多 20 行 / 1500 字符，便于在不打开完整日志时定位原因。 */
+    static String tailSummary(Path log) {
+        try {
+            byte[] all = Files.readAllBytes(log);
+            if (all.length == 0) {
+                return "\n[日志尾摘要: 无输出]";
+            }
+            String text = new String(all, StandardCharsets.UTF_8);
+            String[] lines = text.split("\r?\n");
+            int from = Math.max(0, lines.length - 20);
+            StringBuilder sb = new StringBuilder("\n[日志尾摘要]\n");
+            for (int i = from; i < lines.length; i++) {
+                sb.append(lines[i]).append('\n');
+            }
+            String s = sb.toString();
+            return s.length() > 1500 ? s.substring(s.length() - 1500) : s;
+        } catch (IOException e) {
+            return "\n[日志尾摘要读取失败: " + e.getMessage() + "]";
         }
     }
 

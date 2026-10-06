@@ -25,6 +25,30 @@ class ProcessBuildExecutorTest {
     }
 
     @Test
+    void 日志尾摘要取末20行且不超上限(@TempDir Path tmp) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= 60; i++) {
+            sb.append("line-").append(i).append("\n");
+        }
+        Path log = tmp.resolve("build.log");
+        java.nio.file.Files.write(log, sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        String tail = ProcessBuildExecutor.tailSummary(log);
+        assertThat(tail).contains("[日志尾摘要]");
+        assertThat(tail).contains("line-60");
+        assertThat(tail).doesNotContain("line-39\n"); // 只保留末 20 行（line-41..line-60）
+        assertThat(tail).contains("line-41");
+    }
+
+    @Test
+    void 空日志与缺失日志的尾摘要兜底(@TempDir Path tmp) throws Exception {
+        Path empty = tmp.resolve("empty.log");
+        java.nio.file.Files.createFile(empty);
+        assertThat(ProcessBuildExecutor.tailSummary(empty)).contains("无输出");
+        assertThat(ProcessBuildExecutor.tailSummary(tmp.resolve("no-such.log"))).contains("读取失败");
+    }
+
+    @Test
     void 源码目录不存在时立即失败(@TempDir Path tmp) {
         BuildContext ctx = BuildContext.builder()
                 .buildType(BuildType.GRADLE)
