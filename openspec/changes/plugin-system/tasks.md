@@ -17,15 +17,15 @@
 
 ## 4. 清单与禁用
 
-- [ ] 4.1 插件清单查询 API（已加载：id/版本/贡献扩展点计数；失败：标识或文件名+原因）；验证：混合加载后 curl 返回与磁盘内容一致的清单
-- [ ] 4.2 禁用机制（移入禁用子目录后下次启动不加载）；验证：成功插件移入禁用目录重启后从清单消失、其扩展点从 API 消失
+- [x] 4.1 插件清单查询 API（已加载：id/版本/贡献扩展点计数；失败：标识或文件名+原因）；验证：混合加载后 curl 返回与磁盘内容一致的清单（真机：双插件 curl loaded=[example-script-executor, second-script-executor] 与 plugins/ 磁盘 jar 一致；failures 场景单测 PluginLoadingTest 覆盖损坏 jar/类缺失/实例化异常的失败记录断言）
+- [x] 4.2 禁用机制（移入禁用子目录后下次启动不加载）；验证：成功插件移入禁用目录重启后从清单消失、其扩展点从 API 消失（真机 5.3：jar 移入 disabled → 重启 → /api/plugins loaded=[]、SCRIPT 从 /api/meta 消失；单测禁用子目录用例）
 
 ## 5. 示例插件与端到端
 
-- [ ] 5.1 新增 `example-plugin` Gradle 子模块：最小 `script` 类型 BuildExecutor，shade 打包 + manifest 属性注入 + services 声明；验证：`gradlew :example-plugin:build` 产出含正确 manifest 与 services 的 jar
-- [ ] 5.2 端到端验证：示例 jar 放入 plugins/ → 重启 → `script` 构建类型出现在 API → 用它对一个样例项目完成一次真实构建；验证：留存每步输出证据（放入前后 API 对比、构建成功日志）
-- [ ] 5.3 端到端反向验证：示例 jar 移入禁用目录 → 重启 → `script` 类型消失且原有能力不受影响；验证：API 前后对比记录
-- [ ] 5.4 编写插件开发指南（打包约定/shade 要求/manifest 属性/信任边界/禁用方式）；验证：按指南从零打出第二个可加载插件（可复用 5.1 源码改 id 验证）
+- [x] 5.1 新增 `example-plugin` Gradle 子模块：最小 `script` 类型 BuildExecutor，shade 打包 + manifest 属性注入 + services 声明；验证：`gradlew :example-plugin:build` 产出含正确 manifest 与 services 的 jar（jar 5270 字节，MANIFEST 含 Plugin-Id: example-script-executor/Extension-Api-Version: 1.0，META-INF/services 声明 ScriptBuildExecutor；零依赖故无 shade 必要，指南含 shadow 样例）
+- [x] 5.2 端到端验证：示例 jar 放入 plugins/ → 重启 → `script` 构建类型出现在 API → 用它对一个样例项目完成一次真实构建；验证：留存每步输出证据（放入前后 API 对比、构建成功日志）（真机：/api/meta buildTypes 增至含 SCRIPT、/api/plugins loaded=[example-script-executor 1.0.0 BuildExecutor:1]；注册 script-demo 项目（SCRIPT，源 sample-apps/script-demo）→ release 449 BUILT → dist/hello-script.jar 26B PORTABLE 入库）
+- [x] 5.3 端到端反向验证：示例 jar 移入禁用目录 → 重启 → `script` 类型消失且原有能力不受影响；验证：API 前后对比记录（真机：/api/meta 回落 [MAVEN,GRADLE,NPM,FLUTTER]、/api/plugins loaded=[]/failures=[]、注册 SCRIPT 被拒"不支持的构建类型: SCRIPT（支持: [MAVEN, GRADLE, NPM, FLUTTER]）"、projects=8 原能力完好、script-demo 制品仍在）
+- [x] 5.4 编写插件开发指南（打包约定/shade 要求/manifest 属性/信任边界/禁用方式）；验证：按指南从零打出第二个可加载插件（可复用 5.1 源码改 id 验证）（docs/plugin-dev.md；真机：纯 javac+jar 手工按指南打出 second-script-executor-1.0.0.jar（改包名/类名/Plugin-Id）→ 放入 plugins/ 重启 → 双插件并存 loaded=2 failures=[]、SCRIPT 回到 /api/meta）
 
 ## 6. 收尾
 

@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+group = 'io.github.DekkerDing'
+version = '1.0.0'
+sourceCompatibility = '1.8'
+
+// 平台扩展点以 provided 方式引用（design D2：插件不重复打包平台类）。
+// 本示例零第三方依赖，故无需 shade；若插件引入第三方库，须 shade 进本 jar
+// （shadow 配置样例见仓库 docs/plugin-dev.md）。
+dependencies {
+    compileOnly project(':')
+}
+
+// 插件约定三属性（design D3）随 jar 构建注入 manifest
+jar {
+    manifest {
+        attributes(
+                'Plugin-Id': 'example-script-executor',
+                'Plugin-Version': project.version,
+                'Extension-Api-Version': '1.0',
+        )
+    }
+}

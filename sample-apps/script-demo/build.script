@@ -1,0 +1,3 @@
+# SCRIPT 构建约定示例：每行一条命令（# 开头为注释），产物放 dist/ 子目录
+if not exist dist mkdir dist
+echo script-built-artifact-v1> dist\hello-script.jar

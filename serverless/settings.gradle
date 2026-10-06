@@ -29,3 +29,4 @@ buildscript {
     }
 }
 rootProject.name = 'deploy-platform'
+include 'example-plugin'
