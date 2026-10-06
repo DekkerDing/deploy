@@ -1,0 +1,9 @@
+{
+  "name": "hello-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "7.2 异常演练样例：构建成功但无 jar/dist 产物（零制品→路由拒绝）",
+  "scripts": {
+    "build": "node -e \"console.log('build ok (no artifact by design)')\""
+  }
+}

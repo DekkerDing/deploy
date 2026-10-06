@@ -36,6 +36,13 @@ public class GlobalExceptionHandler {
         return body(HttpStatus.BAD_REQUEST, e.getMessage(), "BAD_REQUEST");
     }
 
+    /** 交付域拒绝（非 BUILT / 路由拒绝 / 目标不可达等）：业务性失败，返回 409 而非 500。 */
+    @ExceptionHandler(io.github.dekkerding.deploy.delivery.DeliveryException.class)
+    public ResponseEntity<Map<String, Object>> deliveryRejected(
+            io.github.dekkerding.deploy.delivery.DeliveryException e) {
+        return body(HttpStatus.CONFLICT, e.getMessage(), "DELIVERY_REJECTED");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> unexpected(Exception e) {
         log.error("未处理异常", e);
