@@ -58,7 +58,8 @@ class ReleaseDetail {
               ?.map((e) => Artifact.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      events: (json['events'] as List<dynamic>?)
+      // 后端字段名为 timeline（状态事件时间线）
+      events: (json['timeline'] as List<dynamic>?)
               ?.map((e) => ReleaseEvent.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],

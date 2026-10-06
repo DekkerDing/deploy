@@ -18,6 +18,7 @@ class ReleaseViewModel extends ChangeNotifier {
   static const Duration _logPollInterval = Duration(seconds: 1);
 
   Timer? _logTimer;
+  Timer? _watchTimer;
   String _logText = '';
   int _logOffset = 0;
   int _logSize = 0;
@@ -142,9 +143,9 @@ class ReleaseViewModel extends ChangeNotifier {
   Future<Release?> deploy(int releaseId, int targetEnvId) async {
     _error = null;
     try {
+      // 后端 @RequestParam：targetEnvId 走 query string（原 JSON body 会 400）
       final data = await HttpClient.post(
-        '/api/releases/$releaseId/deploy',
-        body: {'targetEnvId': targetEnvId},
+        '/api/releases/$releaseId/deploy?targetEnvId=$targetEnvId',
       );
       final release = Release.fromJson(data as Map<String, dynamic>);
       notifyListeners();
@@ -164,8 +165,7 @@ class ReleaseViewModel extends ChangeNotifier {
     _error = null;
     try {
       final data = await HttpClient.post(
-        '/api/releases/$releaseId/rollback',
-        body: {'targetEnvId': targetEnvId},
+        '/api/releases/$releaseId/rollback?targetEnvId=$targetEnvId',
       );
       final release = Release.fromJson(data as Map<String, dynamic>);
       notifyListeners();
@@ -179,6 +179,24 @@ class ReleaseViewModel extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+  }
+
+  /// 部署/回滚进度轮询：2s 刷 detail，终态（DEPLOYED/FAILED/ROLLED_BACK）自停并刷新部署记录。
+  void watchDetail(int releaseId) {
+    unwatchDetail();
+    _watchTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      await loadDetail(releaseId);
+      final s = _detail?.release.state;
+      if (s == 'DEPLOYED' || s == 'FAILED' || s == 'ROLLED_BACK') {
+        unwatchDetail();
+        await loadDeployments(releaseId);
+      }
+    });
+  }
+
+  void unwatchDetail() {
+    _watchTimer?.cancel();
+    _watchTimer = null;
   }
 
   // ---- 构建日志滚动窗（1s 轮询 offset 续读，终态停止） ----
@@ -233,6 +251,7 @@ class ReleaseViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _logTimer?.cancel();
+    _watchTimer?.cancel();
     super.dispose();
   }
 }

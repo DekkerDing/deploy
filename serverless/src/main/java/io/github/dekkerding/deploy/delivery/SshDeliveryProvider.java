@@ -75,6 +75,18 @@ public class SshDeliveryProvider implements DeliveryProvider {
         TargetEnvEntity env = ctx.getTargetEnv();
         ServiceManager sm = resolveServiceManager(env.getOs());
 
+        // 幂等清理（升级/回滚场景）：同 id 服务可能已存在（WinSW install 遇 1073），
+        // 且 Windows 上运行中服务的文件被进程锁定——必须先停用再上传，否则
+        // SFTP 覆盖运行中 jar 会以 SSH_FX_FAILURE 失败。停用失败仅告警：
+        // 服务可能本就未安装或已宕机（全新目录交付不受影响）。
+        for (String cmd : sm.deactivateCommands(ctx)) {
+            try {
+                execOrThrow(client, cmd, "停用旧服务");
+            } catch (DeliveryException e) {
+                log.warn("停用旧服务未成功（继续安装）: {}", e.getMessage());
+            }
+        }
+
         channel.upload(client, ctx.getLocalArtifactPath(),
                 ctx.getRemoteInstallDir() + ctx.getArtifact().getFileName());
 
@@ -92,15 +104,6 @@ public class SshDeliveryProvider implements DeliveryProvider {
                     winSwAdapter.targetWinswExePath(ctx));
         }
 
-        // 幂等清理（升级场景）：同 id 服务可能已存在（如 WinSW install 遇 1073），
-        // 先停用旧服务再全新安装；停用失败仅告警——服务可能本就未安装或已宕机
-        for (String cmd : sm.deactivateCommands(ctx)) {
-            try {
-                execOrThrow(client, cmd, "停用旧服务");
-            } catch (DeliveryException e) {
-                log.warn("停用旧服务未成功（继续安装）: {}", e.getMessage());
-            }
-        }
         for (String cmd : sm.activateCommands(ctx)) {
             execOrThrow(client, cmd, "激活服务");
         }

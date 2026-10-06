@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../app.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../release/viewmodels/release_viewmodel.dart';
 import '../../target_env/viewmodels/target_env_viewmodel.dart';
@@ -38,6 +40,7 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
     _logScroll.removeListener(_onLogScroll);
     _logScroll.dispose();
     _releaseVM?.stopLogPolling(); // ViewModel 生命周期长于页面，离开页面必须停轮询
+    _releaseVM?.unwatchDetail();
     super.dispose();
   }
 
@@ -154,7 +157,7 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
                     label: const Text('触发构建'),
                     onPressed: () => releaseVM.triggerBuild(widget.releaseId),
                   ),
-                if (state == 'BUILT' || state == 'DEPLOYED' || state == 'ROLLED_BACK')
+                if (state == 'BUILT')
                   ElevatedButton.icon(
                     icon: const Icon(Icons.cloud_upload),
                     label: const Text('部署到目标环境'),
@@ -279,8 +282,9 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
             ...detail.artifacts.map<Widget>((a) => ListTile(
                   leading: const Icon(Icons.insert_drive_file, color: AppTheme.primary),
                   title: Text(a.fileName),
-                  subtitle: Text('${_formatSize(a.sizeBytes)} · ${a.sha256.substring(0, 16)}...'),
-                  trailing: const Icon(Icons.download),
+                  subtitle: Text('${_formatSize(a.sizeBytes)} · sha256 ${a.sha256.substring(0, 16)}...'),
+                  trailing: const Icon(Icons.download, color: AppTheme.primary),
+                  onTap: () => _downloadArtifact(a.id as int),
                 )),
           ],
         ),
@@ -334,18 +338,36 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
           children: [
             const Text('部署历史', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            ...vm.deployments.map<Widget>((d) => ListTile(
-                  leading: Icon(
-                    d.result == 'SUCCESS' ? Icons.check_circle : Icons.error,
-                    color: d.result == 'SUCCESS' ? AppTheme.accent : AppTheme.danger,
-                  ),
-                  title: Text('部署 #${d.id}'),
-                  subtitle: Text(
-                    DateFormat('yyyy-MM-dd HH:mm').format(d.startedAt),
-                    style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                  ),
-                  trailing: Text(d.result),
-                )),
+            ...vm.deployments.map<Widget>((d) {
+              final dur = d.finishedAt != null ? d.finishedAt!.difference(d.startedAt).inSeconds : null;
+              return ListTile(
+                leading: Icon(
+                  d.result == 'SUCCESS' ? Icons.check_circle : d.result == 'FAILED' ? Icons.error : Icons.undo,
+                  color: d.result == 'SUCCESS'
+                      ? AppTheme.accent
+                      : d.result == 'FAILED'
+                          ? AppTheme.danger
+                          : Colors.purple,
+                ),
+                title: Text('部署 #${d.id}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${DateFormat('yyyy-MM-dd HH:mm').format(d.startedAt)}${dur != null ? ' · 耗时 ${dur}s' : ' · 进行中…'}',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                    if (d.message != null && d.message!.isNotEmpty)
+                      Text(d.message!,
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+                isThreeLine: true,
+                trailing: Text(d.result, style: const TextStyle(fontSize: 12)),
+              );
+            }),
           ],
         ),
       ),
@@ -372,10 +394,13 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
                       subtitle: Text('${env.os}/${env.arch} · ${env.runtime}'),
                       onTap: () async {
                         Navigator.pop(ctx);
-                        await releaseVM.deploy(widget.releaseId, env.id);
-                        if (context.mounted) {
-                          releaseVM.loadDetail(widget.releaseId);
-                          releaseVM.loadDeployments(widget.releaseId);
+                        final r = await releaseVM.deploy(widget.releaseId, env.id);
+                        if (r != null) {
+                          releaseVM.watchDetail(widget.releaseId); // 终态自停并刷新部署记录
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('部署请求失败: ${releaseVM.error ?? '未知错误'}')),
+                          );
                         }
                       },
                     );
@@ -409,9 +434,13 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
                       subtitle: Text('${env.os}/${env.arch}'),
                       onTap: () async {
                         Navigator.pop(ctx);
-                        await releaseVM.rollback(widget.releaseId, env.id);
-                        if (context.mounted) {
-                          releaseVM.loadDetail(widget.releaseId);
+                        final r = await releaseVM.rollback(widget.releaseId, env.id);
+                        if (r != null) {
+                          releaseVM.watchDetail(widget.releaseId);
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('回滚请求失败: ${releaseVM.error ?? '未知错误'}')),
+                          );
                         }
                       },
                     );
@@ -423,6 +452,23 @@ class _ReleaseDetailPageState extends State<ReleaseDetailPage> {
         ],
       ),
     );
+  }
+
+  /// 制品下载：调系统浏览器打开下载端点（同源/已配置 API_BASE_URL 时）
+  void _downloadArtifact(int artifactId) async {
+    final base = AppConfig.resolvedApiBaseUrl;
+    if (base.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('未配置平台地址（--dart-define=API_BASE_URL=...），无法下载')),
+      );
+      return;
+    }
+    final url = Uri.parse('$base/api/artifacts/$artifactId/download');
+    final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('无法打开下载: $url')));
+    }
   }
 
   String _formatSize(int bytes) {

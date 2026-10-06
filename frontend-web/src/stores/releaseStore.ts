@@ -85,7 +85,8 @@ export const useReleaseStore = create<ReleaseState>((set) => ({
   deploy: async (releaseId, targetEnvId) => {
     set({ error: null });
     try {
-      const release = await apiPost<Release>(`/api/releases/${releaseId}/deploy`, { targetEnvId });
+      // 后端 @RequestParam：targetEnvId 走 query string（原 JSON body 会 400）
+      const release = await apiPost<Release>(`/api/releases/${releaseId}/deploy?targetEnvId=${targetEnvId}`);
       return release;
     } catch (e) {
       set({ error: (e as Error).message });
@@ -96,7 +97,7 @@ export const useReleaseStore = create<ReleaseState>((set) => ({
   rollback: async (releaseId, targetEnvId) => {
     set({ error: null });
     try {
-      const release = await apiPost<Release>(`/api/releases/${releaseId}/rollback`, { targetEnvId });
+      const release = await apiPost<Release>(`/api/releases/${releaseId}/rollback?targetEnvId=${targetEnvId}`);
       return release;
     } catch (e) {
       set({ error: (e as Error).message });

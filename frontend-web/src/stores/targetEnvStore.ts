@@ -6,11 +6,14 @@ import { Deployment } from '../models/deployment';
 interface TargetEnvState {
   envs: TargetEnv[];
   deployments: Deployment[];
+  /** 每环境最近一次部署（时间倒序取首个），null=从未部署——健康灯数据源 */
+  envHealth: Record<number, Deployment | null>;
   loading: boolean;
   error: string | null;
 
   loadEnvs: () => Promise<void>;
   loadDeployments: (envId: number) => Promise<void>;
+  loadEnvHealth: () => Promise<void>;
   register: (data: {
     name: string;
     os: string;
@@ -27,9 +30,10 @@ interface TargetEnvState {
   }) => Promise<TargetEnv | null>;
 }
 
-export const useTargetEnvStore = create<TargetEnvState>((set) => ({
+export const useTargetEnvStore = create<TargetEnvState>((set, get) => ({
   envs: [],
   deployments: [],
+  envHealth: {},
   loading: false,
   error: null,
 
@@ -41,6 +45,20 @@ export const useTargetEnvStore = create<TargetEnvState>((set) => ({
     } catch (e) {
       set({ error: (e as Error).message, loading: false });
     }
+  },
+
+  loadEnvHealth: async () => {
+    const entries = await Promise.all(
+      get().envs.map(async (e) => {
+        try {
+          const ds = await apiGet<Deployment[]>(`/api/target-envs/${e.id}/deployments`);
+          return [e.id, ds[0] ?? null] as const;
+        } catch {
+          return [e.id, null] as const;
+        }
+      })
+    );
+    set({ envHealth: Object.fromEntries(entries) });
   },
 
   loadDeployments: async (envId) => {

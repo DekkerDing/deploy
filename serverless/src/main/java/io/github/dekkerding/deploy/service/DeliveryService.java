@@ -143,8 +143,12 @@ public class DeliveryService {
             String reason = e instanceof DeliveryException ? e.getMessage()
                     : "回滚异常: " + e.getClass().getSimpleName() + ": " + e.getMessage();
             finishDeployment(record, "FAILED", reason);
-            releaseStateService.transition(releaseId, ReleaseState.FAILED,
-                    "回滚失败（当前服务可能已停止，需人工介入或重新部署）: " + reason, reason);
+            // 状态机 DEPLOYED 的唯一出边是 ROLLED_BACK（不允许 →FAILED）：
+            // 保持 DEPLOYED 允许重试回滚，失败详情落 failReason 与同状态事件。
+            // （原实现直接 transition(FAILED) 会抛 IllegalStateTransitionException，
+            // 掩盖真实失败原因并把发布单卡死在无留痕状态。）
+            releaseStateService.noteFailure(releaseId,
+                    "回滚失败（当前服务可能仍在运行，可重试回滚）: " + reason, reason);
         }
     }
 

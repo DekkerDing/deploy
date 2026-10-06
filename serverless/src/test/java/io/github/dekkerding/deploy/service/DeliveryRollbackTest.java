@@ -43,9 +43,10 @@ class DeliveryRollbackTest {
         }
     }
 
-    /** LOCAL 通道 stub：记录 deliver/rollback 调用序列供断言。 */
+    /** LOCAL 通道 stub：记录 deliver/rollback 调用序列供断言；可注入 rollback 执行失败。 */
     static class RecordingLocalProvider implements DeliveryProvider {
         final List<Call> calls = new ArrayList<>();
+        volatile boolean failRollback = false;
 
         static class Call {
             final String action;
@@ -72,6 +73,9 @@ class DeliveryRollbackTest {
         public String rollback(DeliveryContext rollbackTo, DeliveryContext current) {
             calls.add(new Call("rollback:" + current.getRelease().getVersion()
                     + "→" + rollbackTo.getRelease().getVersion(), rollbackTo.getRelease().getVersion()));
+            if (failRollback) {
+                throw new io.github.dekkerding.deploy.delivery.DeliveryException("注入的回滚失败");
+            }
             return "stub 回滚成功 → " + rollbackTo.getRelease().getVersion();
         }
     }
@@ -94,6 +98,7 @@ class DeliveryRollbackTest {
     @org.junit.jupiter.api.BeforeEach
     void resetRecorder() {
         localProvider.calls.clear();
+        localProvider.failRollback = false;
     }
 
     @Test
@@ -147,6 +152,43 @@ class DeliveryRollbackTest {
         } catch (io.github.dekkerding.deploy.delivery.DeliveryException e) {
             assertThat(e.getMessage()).contains("没有更早的成功版本");
         }
+    }
+
+    @Test
+    void 回滚执行失败保持DEPLOYED留痕并可重试() throws Exception {
+        Long envId = seedEnv();
+        Long releaseV1 = seedBuiltRelease("4.0.0");
+        Long releaseV2 = seedBuiltRelease("4.0.1");
+        deliveryService.deploy(releaseV1, envId);
+        awaitState(releaseV1, "DEPLOYED", 10000);
+        deliveryService.deploy(releaseV2, envId);
+        awaitState(releaseV2, "DEPLOYED", 10000);
+
+        // 注入执行失败（模拟 SSH 文件锁/SFTP Failure 等）
+        localProvider.failRollback = true;
+        deliveryService.rollback(releaseV2, envId);
+        awaitFailReason(releaseV2, 10000);
+
+        // 修复回归：状态机无 DEPLOYED→FAILED 边，失败须保持 DEPLOYED（可重试）而非抛
+        // IllegalStateTransitionException 卡死；失败详情落 failReason
+        ReleaseEntity afterFail = releaseMapper.selectById(releaseV2);
+        assertThat(afterFail.getState()).isEqualTo("DEPLOYED");
+        assertThat(afterFail.getFailReason()).contains("注入的回滚失败");
+
+        // 留痕：回滚行 FAILED（挂在回滚目标 release 名下）
+        List<io.github.dekkerding.deploy.domain.entity.DeploymentEntity> rows =
+                deploymentMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query
+                        .QueryWrapper<io.github.dekkerding.deploy.domain.entity.DeploymentEntity>()
+                        .eq("target_env_id", envId));
+        io.github.dekkerding.deploy.domain.entity.DeploymentEntity failedRow = rows.get(rows.size() - 1);
+        assertThat(failedRow.getResult()).isEqualTo("FAILED");
+        assertThat(failedRow.getReleaseId()).isEqualTo(releaseV1);
+        assertThat(failedRow.getMessage()).contains("注入的回滚失败");
+
+        // 解除注入后同一发布单可重试回滚成功
+        localProvider.failRollback = false;
+        deliveryService.rollback(releaseV2, envId);
+        awaitState(releaseV2, "ROLLED_BACK", 10000);
     }
 
     // ---- 数据准备 ----
@@ -208,5 +250,17 @@ class DeliveryRollbackTest {
             Thread.sleep(100);
         }
         throw new AssertionError("等待状态 " + expected + " 超时: release=" + releaseId);
+    }
+
+    private void awaitFailReason(Long releaseId, long timeoutMillis) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMillis;
+        while (System.currentTimeMillis() < deadline) {
+            ReleaseEntity r = releaseMapper.selectById(releaseId);
+            if (r.getFailReason() != null && !r.getFailReason().isEmpty()) {
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError("等待 failReason 落库超时: release=" + releaseId);
     }
 }

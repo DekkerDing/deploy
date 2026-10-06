@@ -35,7 +35,19 @@ export interface ReleaseEvent {
 export interface ReleaseDetail {
   release: Release;
   artifacts: Artifact[];
-  events: ReleaseEvent[];
+  /** 后端字段名为 timeline（状态事件时间线），对齐 ReleaseService.ReleaseDetail */
+  timeline: ReleaseEvent[];
+  deployments?: DeploymentEntity[];
+  buildLogUrl?: string;
+}
+
+/** detail 中内嵌的部署记录（与 /deployments 端点元素同构，字段为 ISO 字符串） */
+interface DeploymentEntity {
+  id: number;
+  result: string;
+  message?: string;
+  startedAt: string;
+  finishedAt?: string;
 }
 
 /** 构建日志增量块（GET /api/releases/{id}/build-log?offset=N）。 */

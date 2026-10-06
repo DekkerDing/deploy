@@ -13,8 +13,8 @@
 
 - [x] 3.1 仪表盘与项目域（双端：状态汇总、项目列表/详情/注册表单）；验证：代码级核对通过，真机注册→列表刷新链路并入 6.1 复核
 - [x] 3.2 构建日志滚动窗（双端）：发布单详情页挂日志面板——1s 轮询 `/build-log?offset=` 续读（nextOffset）、release 终态停止、自动滚动+用户上滚暂停跟随、超长日志仅保留尾部防 DOM 膨胀；验证：触发构建后日志实时追加、BUILT/FAILED 呈现且轮询停止（真机 API 序列：offset 0→91→357 无重复、无新增时 nextOffset 停留、终态 chunk 携带收尾输出；Web tsc+build 过、Flutter analyze 零 error+冒烟测试过；浏览器/APP 视觉呈现并入 6.1）
-- [ ] 3.3 制品库与目标环境域补全：制品下载可用（storage 路由核对）、sha256/平台标签展示、健康状态灯；验证：PORTABLE 与绑定制品标签正确、下载可用（真机）
-- [ ] 3.4 部署域修复与补全：修复 targetEnvId 传参契约（双端现为 JSON body，后端 @RequestParam 必 400）、环境选择（现硬编码 0）、部署进度轮询、部署历史时间线完善；验证：对 E2E 环境完成一次部署→回滚全操作链（真机）
+- [x] 3.3 制品库与目标环境域补全：制品下载可用（后端 /artifacts/{id}/download 已有，双端接线：Web `<a>` 下载 / APP url_launcher 外部浏览器）、sha256/平台标签展示、健康状态灯（每环境最近部署 SUCCESS/FAILED/未部署 着色）；验证：真机下载 artifact#161 sha256 逐字节一致 + Content-Disposition/X-Artifact-Sha256 头正确、PORTABLE 标签（portable=true 无平台绑定）正确
+- [x] 3.4 部署域修复与补全：修复 targetEnvId 传参契约（双端 JSON body→query string，原必 400）、Web 环境选择对话框（原硬编码 0）、双端部署进度轮询（终态自停+刷新历史）、部署历史时间线（耗时/message/ROLLED_BACK 着色）；顺带修复三处后端/契约缺陷——detail 事件字段名对齐（后端 timeline，双端原读 events 致 Web 崩/APP 空）、回滚失败 catch 块 DEPLOYED→FAILED 非法转换掩盖真实原因（改 noteFailure 保持 DEPLOYED 可重试）、installAndActivate 先传后停在 Windows 文件锁下必败（改为先幂等停用再上传）；验证：真机 release#321 部署（dep#97 SUCCESS 9s）→ 回滚（dep#161 SUCCESS"回滚到 1.0.1+健康检查通过"，hello-server-jar Running），后端 90/90 测试含新增"回滚失败保持 DEPLOYED 留痕并可重试"用例
 
 ## 4. FLUTTER 构建类型与 APK 制品
 
@@ -33,4 +33,4 @@
 
 - [ ] 6.1 全链路自测（含 1.1/1.2/3.1/4.2 遗留真机复核）：Web 控制台改一行 UI 文案→平台触发构建→单体 jar 入库→交付本机→浏览器访问验证新文案→APK 产物入库可下载（自举闭环）；留存每步输出证据
 - [ ] 6.2 异常演练：flutter 缺失构建失败消息、扩容中新实例不健康失败不影响存量实例（认证演练已前移 2.3）；验证错误信息准确
-- [ ] 6.3 收尾：核对 tasks.md 全勾、输出改造点总结列表（协作规则）、已知问题记录（令牌明文/缩容对账缺失/iOS 与鸿蒙未开启）
+- [ ] 6.3 收尾：核对 tasks.md 全勾、输出改造点总结列表（协作规则）、已知问题记录（令牌明文/缩容对账缺失/iOS 与鸿蒙未开启/同环境多服务共享 healthCheckPort 时探活假阳性——instance-scaling 独立端口模型将系统化解决）

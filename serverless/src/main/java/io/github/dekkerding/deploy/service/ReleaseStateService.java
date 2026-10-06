@@ -61,4 +61,31 @@ public class ReleaseStateService {
         ReleaseEntity release = releaseMapper.selectById(releaseId);
         return release != null && ReleaseState.valueOf(release.getState()) == expected;
     }
+
+    /**
+     * 不改状态的失败留痕：release.fail_reason 落库 + fromState=toState 的同状态事件。
+     * 用于状态机无 FAILED 出边的场景（如 DEPLOYED 下回滚失败须保持 DEPLOYED 以便重试，
+     * 直接 transition(FAILED) 会抛 IllegalStateTransitionException 掩盖真实原因）。
+     */
+    @Transactional
+    public ReleaseEntity noteFailure(Long releaseId, String message, String failReason) {
+        ReleaseEntity release = releaseMapper.selectById(releaseId);
+        if (release == null) {
+            throw new IllegalArgumentException("发布单不存在: id=" + releaseId);
+        }
+        if (failReason != null) {
+            release.setFailReason(failReason);
+        }
+        release.setUpdatedAt(LocalDateTime.now());
+        releaseMapper.updateById(release);
+
+        ReleaseEventEntity event = new ReleaseEventEntity();
+        event.setReleaseId(releaseId);
+        event.setFromState(release.getState());
+        event.setToState(release.getState());
+        event.setMessage(message);
+        event.setCreatedAt(LocalDateTime.now());
+        releaseEventMapper.insert(event);
+        return release;
+    }
 }

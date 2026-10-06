@@ -89,6 +89,8 @@ class _TargetEnvListPageState extends State<TargetEnvListPage> {
                                         ),
                                       ),
                                       _probeStatusBadge(env.probeStatus),
+                                      const SizedBox(width: 6),
+                                      _healthBadge(vm.envHealth[env.id]),
                                     ],
                                   ),
                                   const SizedBox(height: 12),
@@ -127,6 +129,39 @@ class _TargetEnvListPageState extends State<TargetEnvListPage> {
                   fontSize: 11,
                   color: isKnown ? AppTheme.accent : Colors.grey,
                   fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  /// 部署健康灯：最近一次部署 SUCCESS=健康 / FAILED=部署失败 / ROLLED_BACK=已回滚 / 无=未部署
+  Widget _healthBadge(dynamic last) {
+    final Color color = last == null
+        ? Colors.grey
+        : last.result == 'SUCCESS'
+            ? AppTheme.accent
+            : last.result == 'FAILED'
+                ? AppTheme.danger
+                : Colors.purple;
+    final String label = last == null
+        ? '未部署'
+        : last.result == 'SUCCESS'
+            ? '健康'
+            : last.result == 'FAILED'
+                ? '部署失败'
+                : '已回滚';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.circle, size: 8, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500)),
         ],
       ),
     );
