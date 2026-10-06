@@ -1,13 +1,13 @@
-package io.github.dekkerding.serverless;
+package io.github.dekkerding.deploy;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ServerlessApplication {
+public class DeployApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ServerlessApplication.class, args);
+        SpringApplication.run(DeployApplication.class, args);
     }
 
 }

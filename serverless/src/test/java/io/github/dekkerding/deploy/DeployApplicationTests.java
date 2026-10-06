@@ -1,10 +1,10 @@
-package io.github.dekkerding.serverless;
+package io.github.dekkerding.deploy;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ServerlessApplicationTests {
+class DeployApplicationTests {
 
     @Test
     void contextLoads() {

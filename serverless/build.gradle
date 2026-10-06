@@ -79,8 +79,7 @@ dependencies {
     //runtimeOnly 'com.taobao.arthas:arthas-spring-boot-starter:3.6.7'
     //annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
-    //testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    //testImplementation 'org.springframework.batch:spring-batch-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
 }
 
@@ -89,7 +88,6 @@ dependencyManagement{
         mavenBom 'org.springframework.boot:spring-boot-dependencies:2.6.14'
         mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2021.0.5'
         mavenBom 'com.alibaba.cloud:spring-cloud-alibaba-dependencies:2021.1'
-        mavenBom 'io.projectreactor:reactor-bom:2022.0cll.9'
     }
 }
 

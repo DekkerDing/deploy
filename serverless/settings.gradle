@@ -28,4 +28,4 @@ buildscript {
         }
     }
 }
-rootProject.name = 'serverless'
+rootProject.name = 'deploy-platform'
