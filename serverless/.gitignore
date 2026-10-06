@@ -202,9 +202,10 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+# 锚定到 serverless 根的 gradle 输出目录，避免误伤 src/**/deploy/build/ 源码包
+/build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
