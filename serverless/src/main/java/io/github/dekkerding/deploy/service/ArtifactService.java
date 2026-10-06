@@ -6,6 +6,7 @@ import io.github.dekkerding.deploy.domain.mapper.ArtifactMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -13,7 +14,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -55,8 +55,13 @@ public class ArtifactService {
             }
             String name = file.getFileName().toString();
             Path target = dir.resolve(name);
+            // 同版本覆盖保护（任务 4.4）：目标已存在即拒绝，原制品保持不变
+            if (Files.exists(target)) {
+                throw new DuplicateKeyException(
+                        "制品已存在，同版本禁止覆盖: " + projectName + "/" + version + "/" + name);
+            }
             try {
-                Files.copy(file, target, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(file, target);
             } catch (IOException e) {
                 throw new IllegalStateException("制品复制失败: " + file + " -> " + target, e);
             }

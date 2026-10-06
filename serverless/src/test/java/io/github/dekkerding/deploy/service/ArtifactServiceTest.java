@@ -58,6 +58,31 @@ class ArtifactServiceTest {
     }
 
     @Test
+    void 同版本重复入库被拒绝且原制品不变(@TempDir Path tmp) throws Exception {
+        Path first = tmp.resolve("app.jar");
+        Files.write(first, "original-content".getBytes(StandardCharsets.UTF_8));
+        // 同名产物模拟同版本再次构建
+        Path secondSameName = tmp.resolve("again").resolve("app.jar");
+        Files.createDirectories(tmp.resolve("again"));
+        Files.write(secondSameName, "attacker-content-longer".getBytes(StandardCharsets.UTF_8));
+
+        ArtifactMapper mapper = mock(ArtifactMapper.class);
+        when(mapper.insert(any(ArtifactEntity.class))).thenReturn(1);
+        ArtifactService svc = newService(tmp.resolve("storage"), mapper);
+
+        svc.ingest(7L, 3L, "demo", "1.0.0", Collections.singletonList(first));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> svc.ingest(8L, 3L, "demo", "1.0.0", Collections.singletonList(secondSameName)))
+                .isInstanceOf(org.springframework.dao.DuplicateKeyException.class)
+                .hasMessageContaining("禁止覆盖");
+
+        // 原制品未被替换
+        assertThat(tmp.resolve("storage").resolve(Paths.get("demo", "1.0.0", "app.jar")))
+                .hasContent("original-content");
+    }
+
+    @Test
     void 原生exe入库时声明宿主平台且非PORTABLE(@TempDir Path tmp) throws Exception {
         Path exe = tmp.resolve("agent.exe");
         Files.write(exe, new byte[]{0x4D, 0x5A, 0x00, 0x01});
