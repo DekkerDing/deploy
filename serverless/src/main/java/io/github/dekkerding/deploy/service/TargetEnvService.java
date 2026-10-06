@@ -79,6 +79,10 @@ public class TargetEnvService {
             // 允许为空但路由 JAR 时会因无法预检而拒绝；注册时给默认 8（本平台工程基座）
             env.setJvmVersion(8);
         }
+        if (env.getHealthCheckPort() != null
+                && (env.getHealthCheckPort() < 1 || env.getHealthCheckPort() > 65535)) {
+            throw new IllegalArgumentException("healthCheckPort 必须在 1-65535 之间: " + env.getHealthCheckPort());
+        }
     }
 
     private static String normalizeArch(String rawArch) {

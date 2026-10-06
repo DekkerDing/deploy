@@ -44,6 +44,8 @@ public class TargetEnvController {
         private String username;
         private String credential;
         private Integer jvmVersion;
+        /** 部署后 TCP 探活端口（可选，空=跳过健康检查） */
+        private Integer healthCheckPort;
     }
 
     @PostMapping
@@ -60,6 +62,7 @@ public class TargetEnvController {
         env.setUsername(req.getUsername());
         env.setCredential(req.getCredential());
         env.setJvmVersion(req.getJvmVersion());
+        env.setHealthCheckPort(req.getHealthCheckPort());
         return ResponseEntity.status(HttpStatus.CREATED).body(targetEnvService.register(env));
     }
 

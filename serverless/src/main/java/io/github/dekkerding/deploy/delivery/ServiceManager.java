@@ -20,6 +20,9 @@ public interface ServiceManager {
     /** 安装/更新服务后需要依次执行的命令（显式 shell 由调用方包装）。 */
     List<String> activateCommands(DeliveryContext ctx);
 
+    /** 停用/卸载服务命令（回滚切换版本前停掉当前服务）。 */
+    List<String> deactivateCommands(DeliveryContext ctx);
+
     /** 查询服务运行状态的命令（输出供健康检查参考）。 */
     String statusCommand(DeliveryContext ctx);
 }

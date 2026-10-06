@@ -92,7 +92,8 @@ public class WinSwAdapter implements ServiceManager {
         return "sc query " + serviceId(ctx);
     }
 
-    /** 回滚/下线用命令。 */
+    /** 回滚/下线用命令（ServiceManager.deactivateCommands，任务 6.7）。 */
+    @Override
     public List<String> deactivateCommands(DeliveryContext ctx) {
         String exe = targetWinswExePath(ctx);
         return Arrays.asList(

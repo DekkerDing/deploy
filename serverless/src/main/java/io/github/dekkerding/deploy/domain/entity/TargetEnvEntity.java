@@ -48,6 +48,9 @@ public class TargetEnvEntity {
     /** runtime_type=JVM 时目标 JVM 大版本（如 8/11/17），供字节码预检 */
     private Integer jvmVersion;
 
+    /** 部署后 TCP 探活端口（specs/ssh-jar-delivery 健康检查；空=跳过探活） */
+    private Integer healthCheckPort;
+
     /** KNOWN / UNKNOWN */
     private String probeStatus;
 

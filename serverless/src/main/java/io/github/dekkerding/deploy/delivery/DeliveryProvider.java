@@ -1,7 +1,5 @@
 package io.github.dekkerding.deploy.delivery;
 
-import io.github.dekkerding.deploy.domain.entity.DeploymentEntity;
-
 /**
  * 交付提供者 SPI（design D8）：
  * 通道（sshj / local / 未来 winrm）× 服务管理器适配（systemd / WinSW / 裸进程）。
@@ -18,6 +16,9 @@ public interface DeliveryProvider {
     /** 执行一次交付；失败抛 DeliveryException（由编排层捕获落 FAILED），成功返回说明消息。 */
     String deliver(DeliveryContext ctx);
 
-    /** 回滚：切换到该目标上一次成功版本并重启（任务 6.7）。 */
-    String rollback(DeliveryContext ctx, DeploymentEntity lastSuccess);
+    /**
+     * 回滚（任务 6.7）：停掉 current 版本服务，把 rollbackTo 版本重新安装拉起并健康检查。
+     * 两个上下文均由编排层从 deployment 留痕组装；失败抛 DeliveryException。
+     */
+    String rollback(DeliveryContext rollbackTo, DeliveryContext current);
 }

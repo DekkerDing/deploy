@@ -55,6 +55,12 @@ public class SystemdAdapter implements ServiceManager {
     }
 
     @Override
+    public List<String> deactivateCommands(DeliveryContext ctx) {
+        // 只 stop 不 disable：回滚流程随后安装旧版本 unit 并 enable+restart
+        return Arrays.asList("systemctl stop " + ctx.getProject().getName() + ".service");
+    }
+
+    @Override
     public String statusCommand(DeliveryContext ctx) {
         return "systemctl is-active " + ctx.getProject().getName() + ".service";
     }

@@ -3,6 +3,7 @@ package io.github.dekkerding.deploy.api;
 import io.github.dekkerding.deploy.domain.entity.ReleaseEntity;
 import io.github.dekkerding.deploy.service.BuildLogService;
 import io.github.dekkerding.deploy.service.BuildService;
+import io.github.dekkerding.deploy.service.DeliveryService;
 import io.github.dekkerding.deploy.service.ReleaseService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class ReleaseController {
     private final ReleaseService releaseService;
     private final BuildService buildService;
     private final BuildLogService buildLogService;
+    private final DeliveryService deliveryService;
 
     @Data
     public static class CreateReleaseRequest {
@@ -59,6 +61,18 @@ public class ReleaseController {
     public BuildLogService.LogChunk buildLog(@PathVariable Long id,
                                              @RequestParam(defaultValue = "0") long offset) {
         return buildLogService.read(id, offset);
+    }
+
+    /** 触发交付（specs/ssh-jar-delivery）：BUILT → DEPLOYING → 异步执行 → DEPLOYED/FAILED。 */
+    @PostMapping("/releases/{id}/deploy")
+    public ReleaseEntity deploy(@PathVariable Long id, @RequestParam Long targetEnvId) {
+        return deliveryService.deploy(id, targetEnvId);
+    }
+
+    /** 回滚（任务 6.7）：切回该目标环境上一次成功版本并重启+健康检查。 */
+    @PostMapping("/releases/{id}/rollback")
+    public ReleaseEntity rollback(@PathVariable Long id, @RequestParam Long targetEnvId) {
+        return deliveryService.rollback(id, targetEnvId);
     }
 
     @GetMapping("/projects/{projectId}/releases")

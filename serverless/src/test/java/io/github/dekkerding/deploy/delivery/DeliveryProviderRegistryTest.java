@@ -1,6 +1,5 @@
 package io.github.dekkerding.deploy.delivery;
 
-import io.github.dekkerding.deploy.domain.entity.DeploymentEntity;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -23,7 +22,7 @@ class DeliveryProviderRegistryTest {
         }
 
         @Override
-        public String rollback(DeliveryContext ctx, DeploymentEntity lastSuccess) {
+        public String rollback(DeliveryContext rollbackTo, DeliveryContext current) {
             return "ssh-rollback-stub";
         }
     }
@@ -40,7 +39,7 @@ class DeliveryProviderRegistryTest {
         }
 
         @Override
-        public String rollback(DeliveryContext ctx, DeploymentEntity lastSuccess) {
+        public String rollback(DeliveryContext rollbackTo, DeliveryContext current) {
             return "local-rollback-stub";
         }
     }

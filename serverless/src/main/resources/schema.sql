@@ -61,11 +61,15 @@ CREATE TABLE IF NOT EXISTS target_env (
     username      VARCHAR(64),
     credential    VARCHAR(1024),                  -- MVP: 密码/私钥明文（design D10 已声明边界）
     jvm_version   INT,                            -- runtime_type=JVM 时的目标大版本
+    health_check_port INT,                        -- 部署后 TCP 探活端口（空=跳过健康检查）
     probe_status  VARCHAR(16)  NOT NULL DEFAULT 'UNKNOWN', -- KNOWN / UNKNOWN
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uk_target_env_name UNIQUE (name)
 );
+
+-- 已有库补列（H2 幂等；任务 6.7 健康检查端口）
+ALTER TABLE target_env ADD COLUMN IF NOT EXISTS health_check_port INT;
 
 CREATE TABLE IF NOT EXISTS deployment (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,

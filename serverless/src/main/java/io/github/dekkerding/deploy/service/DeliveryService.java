@@ -41,9 +41,17 @@ public class DeliveryService {
     private final JvmCompatPrecheck jvmCompatPrecheck;
     private final DeliveryProviderRegistry providerRegistry;
 
-    /** 触发交付（异步执行，先同步流转 DEPLOYING）。 */
+    /** 触发交付（异步执行，先同步校验 BUILT 并流转 DEPLOYING）。 */
     public ReleaseEntity deploy(Long releaseId, Long targetEnvId) {
-        ReleaseEntity release = releaseStateService.transition(releaseId, ReleaseState.DEPLOYING,
+        // BUILT 校验必须在转移 DEPLOYING 之前：异步 precheck 时状态已是 DEPLOYING
+        ReleaseEntity release = releaseMapper.selectById(releaseId);
+        if (release == null) {
+            throw new DeliveryException("发布单不存在: id=" + releaseId);
+        }
+        if (!ReleaseState.BUILT.name().equals(release.getState())) {
+            throw new DeliveryException("仅 BUILT 状态可交付，当前: " + release.getState());
+        }
+        releaseStateService.transition(releaseId, ReleaseState.DEPLOYING,
                 "触发交付到目标环境 id=" + targetEnvId);
         new Thread(() -> {
             try {
@@ -52,7 +60,7 @@ public class DeliveryService {
                 log.error("交付编排异常 releaseId={} targetEnvId={}", releaseId, targetEnvId, e);
             }
         }, "deploy-" + releaseId).start();
-        return release;
+        return releaseMapper.selectById(releaseId);
     }
 
     void runDeploy(Long releaseId, Long targetEnvId) {
@@ -76,14 +84,95 @@ public class DeliveryService {
         }
     }
 
-    /** 前置校验：BUILT 状态、路由决策、JVM 字节码预检、留痕行创建。 */
-    private DeploymentEntity precheckAndRecord(Long releaseId, Long targetEnvId) {
+    /**
+     * 回滚（任务 6.7 / specs ssh-jar-delivery）：对该目标环境，把当前成功版本切回上一个成功版本。
+     * 被替换的 deployment 行记 ROLLED_BACK，回滚动作本身新建留痕行；发布单状态 DEPLOYED → ROLLED_BACK。
+     */
+    public ReleaseEntity rollback(Long releaseId, Long targetEnvId) {
         ReleaseEntity release = releaseMapper.selectById(releaseId);
         if (release == null) {
             throw new DeliveryException("发布单不存在: id=" + releaseId);
         }
-        if (!ReleaseState.BUILT.name().equals(release.getState())) {
-            throw new DeliveryException("仅 BUILT 状态可交付，当前: " + release.getState());
+        if (!ReleaseState.DEPLOYED.name().equals(release.getState())) {
+            throw new DeliveryException("仅 DEPLOYED 状态可回滚，当前: " + release.getState());
+        }
+        DeploymentEntity current = latestSuccessOnEnv(releaseId, targetEnvId, null);
+        if (current == null) {
+            throw new DeliveryException("该发布单在目标环境上没有成功部署记录: envId=" + targetEnvId);
+        }
+        DeploymentEntity previous = latestSuccessOnEnv(null, targetEnvId, current.getId());
+        if (previous == null) {
+            throw new DeliveryException("该目标环境上没有更早的成功版本可回滚: env=" + targetEnvId
+                    + "，当前为 " + release.getVersion());
+        }
+        // 注意：状态转移只在异步完成时执行一次（DEPLOYED → ROLLED_BACK），
+        // 此处不预转——否则异步成功路径将因终态二次转移而抛异常；进度由 deployment RUNNING 行体现
+        new Thread(() -> {
+            try {
+                runRollback(releaseId, targetEnvId, current, previous);
+            } catch (Exception e) {
+                log.error("回滚编排异常 releaseId={} targetEnvId={}", releaseId, targetEnvId, e);
+            }
+        }, "rollback-" + releaseId).start();
+        return release;
+    }
+
+    void runRollback(Long releaseId, Long targetEnvId,
+                     DeploymentEntity current, DeploymentEntity previous) {
+        DeploymentEntity record = new DeploymentEntity();
+        record.setReleaseId(previous.getReleaseId());
+        record.setArtifactId(previous.getArtifactId());
+        record.setTargetEnvId(targetEnvId);
+        record.setResult("RUNNING");
+        record.setStartedAt(LocalDateTime.now());
+        deploymentMapper.insert(record);
+        try {
+            DeliveryContext targetCtx = buildContext(previous);
+            DeliveryContext currentCtx = buildContext(current);
+            DeliveryProvider provider = providerRegistry.resolve(targetCtx.getTargetEnv().getReach());
+            String message = provider.rollback(targetCtx, currentCtx);
+            finishDeployment(record, "SUCCESS", message);
+            // 被替换的当前版本留痕为 ROLLED_BACK
+            current.setResult("ROLLED_BACK");
+            current.setMessage("被回滚替换 → " + ctxDesc(previous));
+            current.setFinishedAt(LocalDateTime.now());
+            deploymentMapper.updateById(current);
+            releaseStateService.transition(releaseId, ReleaseState.ROLLED_BACK,
+                    "回滚完成: " + message);
+        } catch (Exception e) {
+            String reason = e instanceof DeliveryException ? e.getMessage()
+                    : "回滚异常: " + e.getClass().getSimpleName() + ": " + e.getMessage();
+            finishDeployment(record, "FAILED", reason);
+            releaseStateService.transition(releaseId, ReleaseState.FAILED,
+                    "回滚失败（当前服务可能已停止，需人工介入或重新部署）: " + reason, reason);
+        }
+    }
+
+    /** 该环境上最近一次 SUCCESS 部署；releaseId 非空时限定发布单，beforeId 非空时取更早者。 */
+    private DeploymentEntity latestSuccessOnEnv(Long releaseId, Long targetEnvId, Long beforeId) {
+        QueryWrapper<DeploymentEntity> q = new QueryWrapper<DeploymentEntity>()
+                .eq("target_env_id", targetEnvId)
+                .eq("result", "SUCCESS");
+        if (releaseId != null) {
+            q.eq("release_id", releaseId);
+        }
+        if (beforeId != null) {
+            q.lt("id", beforeId);
+        }
+        List<DeploymentEntity> list = deploymentMapper.selectList(q.orderByDesc("id"));
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    private static String ctxDesc(DeploymentEntity d) {
+        return "deployment#" + d.getId() + " (release=" + d.getReleaseId()
+                + ", artifact=" + d.getArtifactId() + ")";
+    }
+
+    /** 前置校验：路由决策、JVM 字节码预检、留痕行创建（BUILT 已在触发时同步校验，此时为 DEPLOYING）。 */
+    private DeploymentEntity precheckAndRecord(Long releaseId, Long targetEnvId) {
+        ReleaseEntity release = releaseMapper.selectById(releaseId);
+        if (release == null) {
+            throw new DeliveryException("发布单不存在: id=" + releaseId);
         }
         TargetEnvEntity env = targetEnvService.getByIdOrThrow(targetEnvId);
 
