@@ -29,4 +29,4 @@
 
 ## 6. 收尾
 
-- [ ] 6.1 核对 tasks.md 全部勾选并输出改造点总结列表（对应协作规则）；验证：总结与实际 diff 一致、`openspec validate plugin-system` 通过
+- [x] 6.1 核对 tasks.md 全部勾选并输出改造点总结列表（对应协作规则）；验证：总结与实际 diff 一致、`openspec validate plugin-system` 通过（15/15 全勾；validate 输出 Change 'plugin-system' is valid；总结基于 git show --stat 8492bee/f867d34 核对）
