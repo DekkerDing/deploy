@@ -37,4 +37,10 @@ public class DeliveryContext {
 
     /** 实例监听端口（= env.basePort + seq - 1）：非空时注入服务启动参数并用于实例级探活 */
     private Integer instancePort;
+
+    /**
+     * 跳过制品上传（扩缩容专用）：制品已在共享版本目录且可能被运行中实例的进程锁定
+     * （Windows SFTP 覆盖必失败），扩缩容仅上传实例独立的服务定义/WinSW exe。
+     */
+    private Boolean skipArtifactUpload;
 }

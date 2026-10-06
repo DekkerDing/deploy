@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-/** 演示用长运行服务：监听端口（默认 18080，可用 --port=N 覆盖），回显一行标识。 */
+/** 演示用长运行服务：监听端口（默认 18080，可用 --port=N 或 --server.port=N 覆盖），回显一行标识。 */
 public class HelloServer {
 
     public static void main(String[] args) throws Exception {
@@ -14,6 +14,9 @@ public class HelloServer {
         for (String a : args) {
             if (a.startsWith("--port=")) {
                 port = Integer.parseInt(a.substring("--port=".length()));
+            } else if (a.startsWith("--server.port=")) {
+                // 平台实例扩缩容按 Spring Boot 惯例注入（design D4）
+                port = Integer.parseInt(a.substring("--server.port=".length()));
             }
         }
         ServerSocket server = new ServerSocket(port);

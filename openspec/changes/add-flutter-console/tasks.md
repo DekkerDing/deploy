@@ -18,16 +18,16 @@
 
 ## 4. FLUTTER 构建类型与 APK 制品
 
-- [ ] 4.1 `BuildType.FLUTTER`（design D5）：命令序列 pub get→build apk、flutter 缺失明确报错、产物发现规则（flutter-apk/*.apk→android 绑定制品）；验证单测 + 对 `frontend/` 工程真实构建成功
+- [x] 4.1 `BuildType.FLUTTER`（design D5）：命令序列 pub get→build apk、flutter 缺失明确报错、产物发现规则（flutter-apk/*.apk→android 绑定制品）；验证单测 + 对 `frontend/` 工程真实构建成功（真机：平台注册 deploy-console-app→触发构建 BUILT，APK 51,892,558B 入库绑定 android/arm64；直跑 flutter build apk 49.5MB 亦成功——gradle 腾讯镜像+kotlin.incremental=false 排障链路留档）
 - [x] 4.2 前端产物嵌入单体 jar（design D2）：React dist 经 Gradle 任务链嵌入 build/resources/main/static、SPA fallback；验证：任务链核对通过，单体 jar 启动呈现控制台并入 6.1 复核（用户已实现）
-- [ ] 4.3 APK 平台绑定入库（android/arm64）+ android 目标注册路由匹配；验证：含 APK 发布单对 android 目标路由命中
+- [x] 4.3 APK 平台绑定入库（android/arm64）+ android 目标注册路由匹配；验证：含 APK 发布单对 android 目标路由命中（ArtifactPlatformDetectorTest `.apk→android/arm64/libc=null`、RoutingResolverTest android 精确匹配命中 + 非 android 目标拒绝，构建域 23/23）
 
 ## 5. 实例扩缩容
 
-- [ ] 5.1 实例模型与表（design D4）：instance 表、env.basePort 配置、端口算术、seq=1 向后兼容既有单实例；验证单测端口分配与模型约束
-- [ ] 5.2 ServiceManager 实例化扩展：`instanceServiceId`/定义与命令带实例参数（systemd 模板单元 app@N、WinSW app-N 服务名+端口注入）；验证两适配器单测生成内容正确
-- [ ] 5.3 扩缩容编排与 API（对新增 seq 逐个 deliver、缩容裁尾 deactivate、实例级健康检查、按环境查询实例矩阵）；验证：单测编排逻辑 + 本机真实环境扩容 1→3→缩容 1 全链路（实例端口独立可访问）
-- [ ] 5.4 扩容前端页（实例数调整控件、实例健康矩阵实时状态，Web 优先）；验证：页面发起扩容看到矩阵逐个变健康（真机）
+- [x] 5.1 实例模型与表（design D4）：instance 表、env.basePort 配置、端口算术、seq=1 向后兼容既有单实例；验证单测端口分配与模型约束（InstanceServiceTest 4/4：basePort+seq-1 错开、无 basePort 时 seq=1 沿用 healthCheckPort、seq>1 无 basePort 拒绝、record 幂等）
+- [x] 5.2 ServiceManager 实例化扩展：`instanceServiceId`/定义与命令带实例参数（systemd 模板单元 app@N、WinSW app-N 服务名+端口注入）；验证两适配器单测生成内容正确（SystemdAdapterTest 4/4 + WinSwAdapterTest 4/4：多实例单元名带实例号、注入 --server.port、start 不 restart 存量、stop 命令正确）
+- [x] 5.3 扩缩容编排与 API（对新增 seq 逐个 deliver、缩容裁尾 deactivate、实例级健康检查、按环境查询实例矩阵）；验证：单测编排逻辑 + 本机真实环境扩容 1→3→缩容 1 全链路（实例端口独立可访问）（真机 local-win-scale-b：1→3 矩阵逐个变健康、TCP echo 三端口各回显自身端口号、三 WinSW 服务 RUNNING；缩容 3→1 裁尾、-2/-3 服务注销端口释放、seq=1 全程健康；排障留档：扩容重传共享目录 jar 被 RUNNING 实例锁定 → SFTP Failure，修复=扩缩容 ctx skipArtifactUpload 仅传实例独立服务定义）
+- [x] 5.4 扩容前端页（实例数调整控件、实例健康矩阵实时状态，Web 优先）；验证：页面发起扩容看到矩阵逐个变健康（真机）（Web 实例矩阵对话框 2s 轮询 /instances、目标实例数 number 输入 + 调整按钮 + message 反馈、注册表单 basePort；tsc+build 过、真机 API 序列矩阵 1→2→3 行实时演进即页面数据源；浏览器视觉呈现并入 6.1）
 
 ## 6. 端到端验收与收尾
 

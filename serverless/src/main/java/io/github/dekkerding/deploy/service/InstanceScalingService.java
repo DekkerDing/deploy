@@ -180,6 +180,9 @@ public class InstanceScalingService {
                         release.getVersion()))
                 .instanceSeq(seq)
                 .instancePort(port)
+                // 制品已由首次交付上传至共享版本目录；运行中实例锁着 jar（Windows），
+                // 重传必失败——扩缩容只上传实例独立的服务定义与 WinSW exe
+                .skipArtifactUpload(true)
                 .build();
     }
 

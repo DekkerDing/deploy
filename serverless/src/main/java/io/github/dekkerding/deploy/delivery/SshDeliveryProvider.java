@@ -104,8 +104,12 @@ public class SshDeliveryProvider implements DeliveryProvider {
             }
         }
 
-        channel.upload(client, ctx.getLocalArtifactPath(),
-                ctx.getRemoteInstallDir() + ctx.getArtifact().getFileName());
+        // 制品上传（扩缩容跳过：共享版本目录中制品已存在，且运行中实例锁定 jar 时
+        // Windows SFTP 覆盖必失败——specs/instance-scaling 复用首次交付的制品）
+        if (!Boolean.TRUE.equals(ctx.getSkipArtifactUpload())) {
+            channel.upload(client, ctx.getLocalArtifactPath(),
+                    ctx.getRemoteInstallDir() + ctx.getArtifact().getFileName());
+        }
 
         // 服务定义内容先落本地临时文件再上传（SshChannel 只提供文件上传）
         Path defTmp = Files.createTempFile("deploy-svc-def-", ".tmp");
