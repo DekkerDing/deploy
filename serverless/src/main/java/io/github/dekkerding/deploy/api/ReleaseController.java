@@ -1,6 +1,7 @@
 package io.github.dekkerding.deploy.api;
 
 import io.github.dekkerding.deploy.domain.entity.ReleaseEntity;
+import io.github.dekkerding.deploy.service.BuildLogService;
 import io.github.dekkerding.deploy.service.BuildService;
 import io.github.dekkerding.deploy.service.ReleaseService;
 import lombok.Data;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
@@ -26,6 +28,7 @@ public class ReleaseController {
 
     private final ReleaseService releaseService;
     private final BuildService buildService;
+    private final BuildLogService buildLogService;
 
     @Data
     public static class CreateReleaseRequest {
@@ -49,6 +52,13 @@ public class ReleaseController {
     @GetMapping("/releases/{id}")
     public ReleaseService.ReleaseDetail detail(@PathVariable Long id) {
         return releaseService.detail(id);
+    }
+
+    /** 构建日志增量读取：?offset=N（字节偏移），返回 nextOffset 供续读（任务 3.3）。 */
+    @GetMapping("/releases/{id}/build-log")
+    public BuildLogService.LogChunk buildLog(@PathVariable Long id,
+                                             @RequestParam(defaultValue = "0") long offset) {
+        return buildLogService.read(id, offset);
     }
 
     @GetMapping("/projects/{projectId}/releases")
