@@ -32,7 +32,7 @@
 - [x] 5.1 `TargetEnv` 维度模型（os/arch/libc/载体/通道）与注册/列表 API；验证注册一个未列举系统（如 freebsd/amd64）无需改代码即可成功
 - [x] 5.2 探针实现（类 Unix `uname -sm`、Windows 处理器架构变量→平台描述符；无法识别标记 UNKNOWN 并阻止交付）；验证解析单测矩阵 + 对本机真实探针结果正确
 - [x] 5.3 实现 `RoutingResolver`（精确匹配→PORTABLE 回退→拒绝并列出制品平台清单）；验证单测覆盖命中/回退/拒绝三类用例
-- [ ] 5.4 JAR 字节码版本与目标 JVM 预检（major version 对比）；验证单测：JDK8 字节码→JVM8 通过、高版本字节码→JVM8 部署前拒绝
+- [x] 5.4 JAR 字节码版本与目标 JVM 预检（major version 对比）；验证单测：JDK8 字节码→JVM8 通过、高版本字节码→JVM8 部署前拒绝
 
 ## 6. SSH JAR 交付 Provider
 
