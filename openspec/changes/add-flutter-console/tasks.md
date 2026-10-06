@@ -31,6 +31,6 @@
 
 ## 6. 端到端验收与收尾
 
-- [ ] 6.1 全链路自测（含 1.1/1.2/3.1/4.2 遗留真机复核）：Web 控制台改一行 UI 文案→平台触发构建→单体 jar 入库→交付本机→浏览器访问验证新文案→APK 产物入库可下载（自举闭环）；留存每步输出证据
-- [ ] 6.2 异常演练：flutter 缺失构建失败消息、扩容中新实例不健康失败不影响存量实例（认证演练已前移 2.3）；验证错误信息准确
+- [x] 6.1 全链路自测（含 1.1/1.2/3.1/4.2 遗留真机复核）：Web 控制台改一行 UI 文案→平台触发构建→单体 jar 入库→交付本机→浏览器访问验证新文案→APK 产物入库可下载（自举闭环）；留存每步输出证据（真机：Layout.tsx 改"Deploy Platform v2 自举版"→platform-self GRADLE 构建单体 fat jar 65MB 入库→交付 env local-win-self→WinSW 服务 platform-self；停 bootRun 后自举实例 9s 接管 8080，bundle index-Dz8yU42P.js 含新文案且无旧残留、SPA 200、API 正常（运行目录独立空库符合预期）；APK 制品 193 下载 200/51,892,558B/PK 魔数；排障留档两处真机缺陷：①cmd.exe NoDefaultCurrentDirectoryInExePath 下不搜当前目录→wrapper 加 .\ 前缀 ②Gradle plain 壳 jar 按入库顺序抢先路由→RoutingResolver 多 PORTABLE 优先非 plain）
+- [x] 6.2 异常演练：flutter 缺失构建失败消息、扩容中新实例不健康失败不影响存量实例（认证演练已前移 2.3）；验证错误信息准确（flutter 缺失：toolAvailable 探测单测 + 主链路"构建命令不存在: flutter（请安装并加入 PATH）"（ProcessBuildExecutor.java:82）；真机运行环境 flutter 在 PATH 无法逐请求模拟缺失，以探测机制单测覆盖；扩容失败不影响存量：InstanceScalingTest"扩容中实例失败终止且已健康实例不受影响"+ 真机扩容 1→3 全程 seq=1 healthy 佐证；另获 healthCheckPort 共享假阳性真机实证：自举交付 8080 探到 bootRun 实例报 SUCCESS——已记入 6.3 已知问题）
 - [ ] 6.3 收尾：核对 tasks.md 全勾、输出改造点总结列表（协作规则）、已知问题记录（令牌明文/缩容对账缺失/iOS 与鸿蒙未开启/同环境多服务共享 healthCheckPort 时探活假阳性——instance-scaling 独立端口模型将系统化解决）

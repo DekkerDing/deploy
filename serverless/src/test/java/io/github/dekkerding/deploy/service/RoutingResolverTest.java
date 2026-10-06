@@ -120,4 +120,17 @@ class RoutingResolverTest {
         assertThat(d.matched).isFalse();
         assertThat(d.reason).contains("没有可交付制品");
     }
+
+    @Test
+    void 多PORTABLE候选优先完整jar而非plain壳() {
+        // 6.1 自举真机暴露：Gradle bootJar 同时产出 app.jar 与 app-plain.jar，
+        // 按入库顺序取首个会选中不可独立运行的 plain 壳
+        Decision d = resolver.resolve(
+                Arrays.asList(
+                        artifact("deploy-platform-1.0-plain.jar", null, null, null, true),
+                        artifact("deploy-platform-1.0.jar", null, null, null, true)),
+                env("linux", "amd64", "glibc", "KNOWN"));
+        assertThat(d.matched).isTrue();
+        assertThat(d.artifact.getFileName()).isEqualTo("deploy-platform-1.0.jar");
+    }
 }

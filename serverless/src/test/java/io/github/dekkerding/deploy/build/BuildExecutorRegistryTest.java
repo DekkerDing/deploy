@@ -56,6 +56,15 @@ class BuildExecutorRegistryTest {
     }
 
     @Test
+    void 全局工具缺失时探测为false且FLUTTER属于全局工具清单() {
+        // 任务 6.2：flutter 未安装时构建前置校验立即失败并给出明确消息
+        //（"构建命令不存在: flutter（请安装并加入 PATH）"），探测机制由本测试保证
+        ProcessBuildExecutor executor = new ProcessBuildExecutor();
+        assertThat(executor.toolAvailable("flutter-definitely-missing-xyz")).isFalse();
+        assertThat(ProcessBuildExecutor.GLOBAL_TOOLS).contains("flutter");
+    }
+
+    @Test
     void 无执行器支持时抛出明确异常() {
         BuildExecutorRegistry registry = new BuildExecutorRegistry(
                 Collections.singletonList(new MavenStubExecutor()));

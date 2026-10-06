@@ -53,7 +53,10 @@ public class RoutingResolver {
             String desc = describe(a);
             platforms.add(desc);
             if (Boolean.TRUE.equals(a.getPortable())) {
-                if (portable == null) {
+                // Gradle bootJar 伴随的 *-plain.jar 是无依赖壳（不可独立运行）：
+                // 多个 PORTABLE 候选时优先完整 fat jar（6.1 自举真机暴露）
+                if (portable == null || (isPlainJar(portable.getFileName())
+                        && !isPlainJar(a.getFileName()))) {
                     portable = a;
                 }
                 continue;
@@ -88,5 +91,10 @@ public class RoutingResolver {
         }
         return a.getFileName() + "[" + a.getPlatformOs() + "/" + a.getPlatformArch()
                 + "/" + (a.getPlatformLibc() == null ? "-" : a.getPlatformLibc()) + "]";
+    }
+
+    /** Gradle bootJar classifier=plain 的伴随壳 jar（无依赖，不可独立运行）。 */
+    private static boolean isPlainJar(String fileName) {
+        return fileName != null && fileName.endsWith("-plain.jar");
     }
 }

@@ -54,7 +54,7 @@ export default function Layout() {
             <LayoutDashboard size={18} className="text-white" />
           </div>
           <div>
-            <div className="text-sm font-bold text-gray-900 dark:text-white">Deploy Platform</div>
+            <div className="text-sm font-bold text-gray-900 dark:text-white">Deploy Platform v2 自举版</div>
             <div className="text-[10px] text-gray-400">Serverless CI/CD</div>
           </div>
         </div>

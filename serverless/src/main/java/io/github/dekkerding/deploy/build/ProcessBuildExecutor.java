@@ -32,8 +32,8 @@ public class ProcessBuildExecutor implements BuildExecutor {
     private static final boolean WINDOWS =
             System.getProperty("os.name", "").toLowerCase().contains("win");
 
-    /** 需要安装在全局 PATH 的工具名（wrapper 脚本不算）。 */
-    private static final Set<String> GLOBAL_TOOLS = Collections.unmodifiableSet(
+    /** 需要安装在全局 PATH 的工具名（wrapper 脚本不算）；包可见供同包测试校验缺失探测清单。 */
+    static final Set<String> GLOBAL_TOOLS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList("mvn", "gradle", "npm", "flutter")));
 
     /** 探测全局命令是否可用（where / command -v），5 秒超时视为不可用。 */
@@ -164,7 +164,15 @@ public class ProcessBuildExecutor implements BuildExecutor {
         List<String> wrapped = new ArrayList<>();
         wrapped.add("cmd.exe");
         wrapped.add("/c");
-        wrapped.addAll(cmd);
+        // cmd.exe 在 NoDefaultCurrentDirectoryInExePath 环境下不搜索当前目录：
+        // 项目内 wrapper（.bat/.cmd 结尾）以 .\ 前缀显式定位（工作目录=源码目录已由 directory() 设定）
+        String first = cmd.get(0);
+        if ((first.endsWith(".bat") || first.endsWith(".cmd"))
+                && !first.contains("\\") && !first.contains("/")) {
+            first = ".\\" + first;
+        }
+        wrapped.add(first);
+        wrapped.addAll(cmd.subList(1, cmd.size()));
         return wrapped;
     }
 
