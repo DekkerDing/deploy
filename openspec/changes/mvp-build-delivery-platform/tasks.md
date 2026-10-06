@@ -23,7 +23,7 @@
 ## 4. 制品管理
 
 - [x] 4.1 构建产物落盘 `storage/{project}/{version}/` 并登记元数据（文件名/大小/sha256/releaseId）；验证 API 可查询到入库制品
-- [ ] 4.2 制品平台描述符与可移植性建模（PORTABLE 或 os+arch+libc 声明）；验证纯 JAR 自动标记 PORTABLE、绑定制品正确声明平台
+- [x] 4.2 制品平台描述符与可移植性建模（PORTABLE 或 os+arch+libc 声明）；验证纯 JAR 自动标记 PORTABLE、绑定制品正确声明平台
 - [ ] 4.3 制品列表与下载 API；验证下载内容与入库 sha256 一致
 - [ ] 4.4 同版本覆盖保护；验证重复版本写入被拒绝且原制品不变
 

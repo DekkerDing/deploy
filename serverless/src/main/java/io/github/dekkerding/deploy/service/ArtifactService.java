@@ -89,7 +89,7 @@ public class ArtifactService {
     }
 
     /** 流式计算 sha256（小写十六进制）。 */
-    static String sha256Of(Path file) {
+    public static String sha256Of(Path file) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA-256");
@@ -115,5 +115,19 @@ public class ArtifactService {
     /** 解析制品的物理存储绝对路径（下载/交付用）。 */
     public Path resolveStorageFile(ArtifactEntity artifact) {
         return Paths.get(storageDir).resolve(artifact.getStoragePath()).toAbsolutePath().normalize();
+    }
+
+    /** 发布单制品列表（发布单不存在时报错）。 */
+    public List<ArtifactEntity> listByRelease(Long releaseId) {
+        return artifactMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<ArtifactEntity>()
+                .eq("release_id", releaseId).orderByAsc("id"));
+    }
+
+    public ArtifactEntity getByIdOrThrow(Long id) {
+        ArtifactEntity a = artifactMapper.selectById(id);
+        if (a == null) {
+            throw new IllegalArgumentException("制品不存在: id=" + id);
+        }
+        return a;
     }
 }
