@@ -36,3 +36,6 @@ data/
 
 # ---- Maven 本地遗留 ----
 mvnw.tmp/
+
+# ---- 第三方二进制（WinSW 由镜像下载，不入库）----
+vendor/
